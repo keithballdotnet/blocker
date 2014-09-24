@@ -2,6 +2,7 @@ package blocks
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"errors"
 	"fmt"
 	"github.com/Inflatablewoman/blocks/hash2"
 	"io"
@@ -68,10 +69,10 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 		}
 
 		// Calculate the hash of the block
-		hash := hash2.ComputeSha256Checksum(data)
+		hash := hash2.ComputeSha256Checksum(data[:count])
 
 		// Create our file structure
-		block := Block{uuid.New(), hash, data}
+		block := Block{uuid.New(), hash, data[:count]}
 
 		// Commit black to repository
 		blockRepository.SaveBlock(block)
@@ -83,9 +84,7 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 
 		fmt.Println("Created block:", block.ID)
 
-		// , data[:count]
-
-		fmt.Printf("Block #%d - ID %d read %d bytes with hash %v\n", blockCount, block.ID, count, hash)
+		fmt.Printf("Block #%d - ID %d read %d bytes\n", blockCount, block.ID, count)
 	}
 
 	blockedFile := BlockedFile{uuid.New(), fileLength, fileblocks}
@@ -130,21 +129,32 @@ func GetFile(blockFileID string, targetFilePath string) error {
 
 	var offSet int64 = 0
 	for i, fileBlock := range blockedFile.Blocks {
-		fmt.Printf("Look at block #%d with ID %v\n", i, fileBlock.ID)
+
+		fmt.Printf("Got block #%d with ID %v\n", i+1, fileBlock.ID)
 
 		block, err := blockRepository.GetBlock(fileBlock.ID)
 		if err != nil {
+			fmt.Println("Error: " + err.Error())
 			return err
+		}
+
+		// Validate the hash
+		if !hash2.ValidateSha256Checksum(block.Data, block.Hash) {
+			fmt.Println("Invalid block hash")
+			return errors.New("Invalid block hash")
 		}
 
 		// Write out this block to the file
 		bytesWritten, err := outFile.WriteAt(block.Data, offSet)
 		if err != nil {
+			fmt.Println("Error: " + err.Error())
 			return err
 		}
 
 		// Move offset
 		offSet += int64(bytesWritten)
+
+		fmt.Printf("Wrote %d bytes to file moving to offset %d\n", bytesWritten, offSet)
 	}
 
 	return nil
