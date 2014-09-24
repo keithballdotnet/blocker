@@ -84,7 +84,7 @@ func (r BlockedFileRepository) SaveBlockedFile(blockedFile BlockedFile) error {
 }
 
 // Get a BlockedFile from the repository
-func (r BlockRepository) GetBlockedFile(blockfileid string) (*BlockedFile, error) {
+func (r BlockedFileRepository) GetBlockedFile(blockfileid string) (*BlockedFile, error) {
 	var blockedFile BlockedFile
 
 	if err := r.bucket.Get(blockfileid, &blockedFile); err != nil {

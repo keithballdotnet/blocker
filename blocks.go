@@ -24,6 +24,7 @@ type FileBlock struct {
 // File is a representation of a blocks together to form a file
 type BlockedFile struct {
 	ID     string
+	Length int64
 	Blocks []FileBlock
 }
 
@@ -56,9 +57,11 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 	}
 
 	var blockCount int
+	var fileLength int64
 	// Keep reading blocks of data from the file until we have read less than the BlockSize
 	for count, err := sourceFile.Read(data); err == nil; count, err = sourceFile.Read(data) {
 		blockCount++
+		fileLength += int64(count)
 
 		if err != nil && err != io.EOF {
 			return err, BlockedFile{}
@@ -85,7 +88,7 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 		fmt.Printf("Block #%d - ID %d read %d bytes with hash %v\n", blockCount, block.ID, count, hash)
 	}
 
-	blockedFile := BlockedFile{uuid.New(), fileblocks}
+	blockedFile := BlockedFile{uuid.New(), fileLength, fileblocks}
 
 	blockedFileRepository, err := NewBlockedFileRepository()
 	if err != nil {
@@ -95,4 +98,54 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 	blockedFileRepository.SaveBlockedFile(blockedFile)
 
 	return nil, blockedFile
+}
+
+func GetFile(blockFileID string, targetFilePath string) error {
+
+	// Get the repository for the blockedFiles
+	blockedFileRepository, err := NewBlockedFileRepository()
+	if err != nil {
+		return err
+	}
+
+	// Get peristent store for blocks
+	blockRepository, err := NewBlockRepository()
+	if err != nil {
+		return err
+	}
+
+	// Get the blocked file from the repository
+	blockedFile, err := blockedFileRepository.GetBlockedFile(blockFileID)
+	if err != nil {
+		return err
+	}
+
+	outFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	fmt.Println("Got file: " + blockedFile.ID)
+
+	var offSet int64 = 0
+	for i, fileBlock := range blockedFile.Blocks {
+		fmt.Printf("Look at block #%d with ID %v\n", i, fileBlock.ID)
+
+		block, err := blockRepository.GetBlock(fileBlock.ID)
+		if err != nil {
+			return err
+		}
+
+		// Write out this block to the file
+		bytesWritten, err := outFile.WriteAt(block.Data, offSet)
+		if err != nil {
+			return err
+		}
+
+		// Move offset
+		offSet += int64(bytesWritten)
+	}
+
+	return nil
 }

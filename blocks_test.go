@@ -26,4 +26,6 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	c.Assert(len(blockFile.Blocks) > 0, IsTrue)
 
 	fmt.Println("Created new file: ", blockFile)
+
+	GetFile(blockFile.ID, "/tmp/testpest.txt")
 }
