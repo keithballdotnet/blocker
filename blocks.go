@@ -70,6 +70,7 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 		// Create our file structure
 		block := Block{uuid.New(), hash, data}
 
+		// Commit black to repository
 		blockRepository.SaveBlock(block)
 
 		fileblock := FileBlock{block.ID, hash}
@@ -82,10 +83,16 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 		// , data[:count]
 
 		fmt.Printf("Block #%d - ID %d read %d bytes with hash %v\n", blockCount, block.ID, count, hash)
-
 	}
 
 	blockedFile := BlockedFile{uuid.New(), fileblocks}
+
+	blockedFileRepository, err := NewBlockedFileRepository()
+	if err != nil {
+		return err, BlockedFile{}
+	}
+
+	blockedFileRepository.SaveBlockedFile(blockedFile)
 
 	return nil, blockedFile
 }
