@@ -2,18 +2,28 @@ package blocks
 
 import (
 	"fmt"
+	. "github.com/Inflatablewoman/blocks/gocheck2"
+	. "gopkg.in/check.v1"
 	"testing"
 )
 
-// A test to create a new file
-func TestCreateNewFile(t *testing.T) {
+func Test(t *testing.T) {
+	TestingT(t)
+}
+
+type BlockSuite struct {
+}
+
+var _ = Suite(&BlockSuite{})
+
+func (s *BlockSuite) TestCreateFile(c *C) {
 
 	// NOTE:  Change this path
-	err, Id := CreateFile("/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt")
+	err, blockFile := CreateFile("/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt")
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err == nil, IsTrue)
+	c.Assert(blockFile.ID != "", IsTrue)
+	c.Assert(len(blockFile.Blocks) > 0, IsTrue)
 
-	fmt.Println("Created new file with ID: ", Id)
+	fmt.Println("Created new file: ", blockFile)
 }
