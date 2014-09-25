@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"errors"
 	"fmt"
+	"github.com/Inflatablewoman/blocks/crypto"
 	"github.com/Inflatablewoman/blocks/hash2"
 	"io"
 	"os"
@@ -101,8 +102,14 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 		}
 
 		if blockId == "" {
+			// Encrypt the data
+			encryptedData, err := crypto.AesCfbEncrypt(data[:count])
+			if err != nil {
+				return err, BlockedFile{}
+			}
+
 			// Create our file structure
-			block := Block{uuid.New(), hash, data[:count]}
+			block := Block{uuid.New(), hash, encryptedData}
 
 			// Commit block to repository
 			blockRepository.SaveBlock(block)
@@ -165,14 +172,21 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 			return err
 		}
 
+		// Decrypt the data
+		decryptedData, err := crypto.AesCfbDecrypt(block.Data)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+			return err
+		}
+
 		// Validate the hash
-		if !hash2.ValidateSha256Checksum(block.Data, block.Hash) {
+		if !hash2.ValidateSha256Checksum(decryptedData, block.Hash) {
 			fmt.Println("Invalid block hash")
 			return errors.New("Invalid block hash")
 		}
 
 		// Write out this block to the file
-		bytesWritten, err := outFile.WriteAt(block.Data, offSet)
+		bytesWritten, err := outFile.WriteAt(decryptedData, offSet)
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 			return err
