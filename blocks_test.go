@@ -23,9 +23,12 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	const inputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt"
 	const changedInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed.txt"
 	const outputFile = "/tmp/tempest.txt"
+	const changedOutputFile = "/tmp/tempest_changed.txt"
 
 	// Get some info about the file we are going test
 	inputFileInfo, _ := os.Stat(inputFile)
+	// Get some info about the file we are going test
+	changedInputFileInfo, _ := os.Stat(changedInputFile)
 
 	// Block the file
 	err, blockFile := BlockFile(inputFile, "")
@@ -95,4 +98,22 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 
 	// We have the file
 	fmt.Println("Block file: ", blockFile)
+
+	// Clean up any old file
+	os.Remove(changedOutputFile)
+
+	// Get the file and create a copy to the output
+	err = UnblockFile(blockFile.ID, changedOutputFile)
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	// Get some info about the file we are going test
+	outputFileInfo, _ = os.Stat(changedOutputFile)
+
+	fmt.Printf("Input (CHANGED) filesize: %v\n", changedInputFileInfo.Size())
+	fmt.Printf("Output (CHANGED) filesize: %v\n", outputFileInfo.Size())
+
+	// Check we wrote the full file size
+	c.Assert(outputFileInfo.Size() == changedInputFileInfo.Size(), IsTrue)
 }
