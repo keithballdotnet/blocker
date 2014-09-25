@@ -21,19 +21,23 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 
 	// NOTE:  Change this path
 	const inputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt"
+	const changedInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed.txt"
 	const outputFile = "/tmp/tempest.txt"
 
 	// Get some info about the file we are going test
 	inputFileInfo, _ := os.Stat(inputFile)
 
 	// Block the file
-	err, blockFile := CreateFile(inputFile)
+	err, blockFile := BlockFile(inputFile, "")
 
 	// No error
 	c.Assert(err == nil, IsTrue)
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
+
+	// File is new should be version 1
+	c.Assert(blockFile.Version == 1, IsTrue)
 
 	// Check we read the full file size
 	c.Assert(blockFile.Length == inputFileInfo.Size(), IsTrue)
@@ -42,13 +46,13 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	c.Assert(len(blockFile.Blocks) > 0, IsTrue)
 
 	// We have the file
-	fmt.Println("Created new file: ", blockFile)
+	fmt.Println("Block file: ", blockFile)
 
 	// Clean up any old file
 	os.Remove(outputFile)
 
 	// Get the file and create a copy to the output
-	err = GetFile(blockFile.ID, outputFile)
+	err = UnblockFile(blockFile.ID, outputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue)
@@ -62,4 +66,33 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
 
+	// Block the file again.  New version should be created
+	err, blockFile = BlockFile(inputFile, blockFile.ID)
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	// Check we have an ID
+	c.Assert(blockFile.ID != "", IsTrue)
+
+	// File is new version so should be version 2
+	c.Assert(blockFile.Version == 2, IsTrue)
+
+	// We have the file
+	fmt.Println("Block file: ", blockFile)
+
+	// Block the file again.  New version should be created
+	err, blockFile = BlockFile(changedInputFile, blockFile.ID)
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	// Check we have an ID
+	c.Assert(blockFile.ID != "", IsTrue)
+
+	// File is new version so should be version 3
+	c.Assert(blockFile.Version == 3, IsTrue)
+
+	// We have the file
+	fmt.Println("Block file: ", blockFile)
 }

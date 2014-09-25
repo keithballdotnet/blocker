@@ -35,3 +35,8 @@ func ValidateSha256Checksum(data []byte, sum []byte) bool {
 	ourSum := ComputeSha256Checksum(data)
 	return bytes.Equal(ourSum, sum)
 }
+
+// Compare two check sums.  Return true if they are they same
+func CompareChecksums(first []byte, second []byte) bool {
+	return bytes.Equal(first, second)
+}

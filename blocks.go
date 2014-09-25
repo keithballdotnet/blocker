@@ -18,15 +18,17 @@ type Block struct {
 
 // This is a form used to link the File to the Block without needing to load the full data from the database
 type FileBlock struct {
-	ID   string
-	Hash []byte
+	ID            string
+	BlockPosition int
+	Hash          []byte
 }
 
 // File is a representation of a blocks together to form a file
 type BlockedFile struct {
-	ID     string
-	Length int64
-	Blocks []FileBlock
+	ID      string
+	Length  int64
+	Version int
+	Blocks  []FileBlock
 }
 
 // 4Mb block size
@@ -37,7 +39,7 @@ const BlockSize int64 = 30720
 
 // Create a new file.
 // Expects a filename.  Returns any error or the ID of the new file
-func CreateFile(sourceFilepath string) (error, BlockedFile) {
+func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile) {
 
 	// open the file and read the contents
 	sourceFile, err := os.Open(sourceFilepath)
@@ -57,6 +59,20 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 		return err, BlockedFile{}
 	}
 
+	blockedFileRepository, err := NewBlockedFileRepository()
+	if err != nil {
+		return err, BlockedFile{}
+	}
+
+	// Initial version
+	blockedFileVersion := 1
+
+	// var existingBlockFile BlockedFile
+	existingBlockFile, err := blockedFileRepository.GetBlockedFile(blockedFileID)
+	if err == nil && existingBlockFile != nil {
+		blockedFileVersion = existingBlockFile.Version + 1
+	}
+
 	var blockCount int
 	var fileLength int64
 	// Keep reading blocks of data from the file until we have read less than the BlockSize
@@ -71,35 +87,46 @@ func CreateFile(sourceFilepath string) (error, BlockedFile) {
 		// Calculate the hash of the block
 		hash := hash2.ComputeSha256Checksum(data[:count])
 
-		// Create our file structure
-		block := Block{uuid.New(), hash, data[:count]}
+		blockId := ""
+		// If we have an existing version of this document.  Check to see if this block is the same.
+		if existingBlockFile != nil {
+			// Detect if block is same as existing block
+			for _, existingFileBlock := range existingBlockFile.Blocks {
+				if existingFileBlock.BlockPosition == blockCount && hash2.CompareChecksums(existingFileBlock.Hash, hash) {
+					// We have a match for the block.  Set the blockId.  No need to store to repository
+					blockId = existingFileBlock.ID
+					fmt.Println("Reusing block:", blockId)
+				}
+			}
+		}
 
-		// Commit black to repository
-		blockRepository.SaveBlock(block)
+		if blockId == "" {
+			// Create our file structure
+			block := Block{uuid.New(), hash, data[:count]}
 
-		fileblock := FileBlock{block.ID, hash}
+			// Commit block to repository
+			blockRepository.SaveBlock(block)
+			blockId = block.ID
+
+			fmt.Println("Created block:", blockId)
+		}
+
+		fileblock := FileBlock{blockId, blockCount, hash}
 
 		// Add the file block to the list of blocks
 		fileblocks = append(fileblocks, fileblock)
 
-		fmt.Println("Created block:", block.ID)
-
-		fmt.Printf("Block #%d - ID %d read %d bytes\n", blockCount, block.ID, count)
+		fmt.Printf("Block #%d - ID %v read %d bytes\n", blockCount, blockId, count)
 	}
 
-	blockedFile := BlockedFile{uuid.New(), fileLength, fileblocks}
-
-	blockedFileRepository, err := NewBlockedFileRepository()
-	if err != nil {
-		return err, BlockedFile{}
-	}
+	blockedFile := BlockedFile{uuid.New(), fileLength, blockedFileVersion, fileblocks}
 
 	blockedFileRepository.SaveBlockedFile(blockedFile)
 
 	return nil, blockedFile
 }
 
-func GetFile(blockFileID string, targetFilePath string) error {
+func UnblockFile(blockFileID string, targetFilePath string) error {
 
 	// Get the repository for the blockedFiles
 	blockedFileRepository, err := NewBlockedFileRepository()

@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"errors"
 	"fmt"
 	"github.com/couchbaselabs/go-couchbase"
 	"log"
@@ -85,6 +86,10 @@ func (r BlockedFileRepository) SaveBlockedFile(blockedFile BlockedFile) error {
 
 // Get a BlockedFile from the repository
 func (r BlockedFileRepository) GetBlockedFile(blockfileid string) (*BlockedFile, error) {
+	if blockfileid == "" {
+		return nil, errors.New("No Block File ID passed")
+	}
+
 	var blockedFile BlockedFile
 
 	if err := r.bucket.Get(blockfileid, &blockedFile); err != nil {
