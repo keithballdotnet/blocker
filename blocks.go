@@ -33,10 +33,16 @@ type BlockedFile struct {
 }
 
 // 4Mb block size
-//const BlockSize int64 := 4194304
+// const BlockSize int64 = 4194304
+
+// 1Mb block size
+//const BlockSize int64 = 1048576
 
 // Will start with small 30kb chunks to start with
-const BlockSize int64 = 30720
+// const BlockSize int64 = 30720
+
+// 100kb block size
+const BlockSize int64 = 102400
 
 // Create a new file.
 // Expects a filename.  Returns any error or the ID of the new file
@@ -96,7 +102,7 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 				if existingFileBlock.BlockPosition == blockCount && hash2.CompareChecksums(existingFileBlock.Hash, hash) {
 					// We have a match for the block.  Set the blockId.  No need to store to repository
 					blockId = existingFileBlock.ID
-					fmt.Println("Reusing block:", blockId)
+					// fmt.Println("Reusing block:", blockId)
 				}
 			}
 		}
@@ -115,7 +121,7 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 			blockRepository.SaveBlock(block)
 			blockId = block.ID
 
-			fmt.Println("Created block:", blockId)
+			// fmt.Println("Created block:", blockId)
 		}
 
 		fileblock := FileBlock{blockId, blockCount, hash}
@@ -123,7 +129,7 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 		// Add the file block to the list of blocks
 		fileblocks = append(fileblocks, fileblock)
 
-		fmt.Printf("Block #%d - ID %v read %d bytes\n", blockCount, blockId, count)
+		// fmt.Printf("Block #%d - ID %v read %d bytes\n", blockCount, blockId, count)
 	}
 
 	blockedFile := BlockedFile{uuid.New(), fileLength, blockedFileVersion, fileblocks}
@@ -162,9 +168,9 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 	fmt.Println("Got file: " + blockedFile.ID)
 
 	var offSet int64 = 0
-	for i, fileBlock := range blockedFile.Blocks {
+	for _, fileBlock := range blockedFile.Blocks {
 
-		fmt.Printf("Got block #%d with ID %v\n", i+1, fileBlock.ID)
+		// fmt.Printf("Got block #%d with ID %v\n", i+1, fileBlock.ID)
 
 		block, err := blockRepository.GetBlock(fileBlock.ID)
 		if err != nil {
@@ -195,7 +201,7 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 		// Move offset
 		offSet += int64(bytesWritten)
 
-		fmt.Printf("Wrote %d bytes to file moving to offset %d\n", bytesWritten, offSet)
+		// fmt.Printf("Wrote %d bytes to file moving to offset %d\n", bytesWritten, offSet)
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	. "gopkg.in/check.v1"
 	"os"
 	"testing"
+	"time"
 )
 
 func Test(t *testing.T) {
@@ -21,7 +22,10 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 
 	// NOTE:  Change this path
 	const inputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt"
+	const bibleInFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/kjv.txt"
+	const bibleOutFile = "/tmp/kjv.txt"
 	const changedInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed.txt"
+	const changedAgainInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed_again.txt"
 	const outputFile = "/tmp/tempest.txt"
 	const changedOutputFile = "/tmp/tempest_changed.txt"
 
@@ -31,7 +35,18 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	changedInputFileInfo, _ := os.Stat(changedInputFile)
 
 	// Block the file
+	start := time.Now()
 	err, blockFile := BlockFile(inputFile, "")
+	end := time.Now()
+
+	fmt.Printf("Blocked Tempest took: %v\n", end.Sub(start))
+
+	// Block the bigger
+	start = time.Now()
+	err, bibleBlockFile := BlockFile(bibleInFile, "")
+	end = time.Now()
+
+	fmt.Printf("Blocked King James Bible took: %v\n", end.Sub(start))
 
 	// No error
 	c.Assert(err == nil, IsTrue)
@@ -55,7 +70,21 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	os.Remove(outputFile)
 
 	// Get the file and create a copy to the output
+	start = time.Now()
 	err = UnblockFile(blockFile.ID, outputFile)
+	end = time.Now()
+
+	fmt.Printf("Unblocked tempest took: %v\n", end.Sub(start))
+
+	// Clean up any old file
+	os.Remove(bibleOutFile)
+
+	// Get the file and create a copy to the output
+	start = time.Now()
+	err = UnblockFile(bibleBlockFile.ID, bibleOutFile)
+	end = time.Now()
+
+	fmt.Printf("Unblocked King James Bible took: %v\n", end.Sub(start))
 
 	// No error
 	c.Assert(err == nil, IsTrue)
