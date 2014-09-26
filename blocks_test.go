@@ -32,7 +32,7 @@ func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
 
 	// Block the bigger
 	start := time.Now()
-	err, bibleBlockFile := BlockFile(bibleInFile, "")
+	err, bibleBlockFile := BlockFile(bibleInFile)
 	end := time.Now()
 
 	fmt.Printf("Blocked King James Bible took: %v\n", end.Sub(start))
@@ -62,7 +62,7 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 
 	// Block the file
 	start := time.Now()
-	err, blockFile := BlockFile(inputFile, "")
+	err, blockFile := BlockFile(inputFile)
 	end := time.Now()
 
 	fmt.Printf("Blocked Tempest at 30Kb took: %v\n", end.Sub(start))
@@ -73,14 +73,14 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
 
-	// File is new should be version 1
-	c.Assert(blockFile.Version == 1, IsTrue)
+	// Check it was created in the past
+	c.Assert(blockFile.Created.Before(time.Now()), IsTrue)
 
 	// Check we read the full file size
 	c.Assert(blockFile.Length == inputFileInfo.Size(), IsTrue)
 
 	// Make sure the item returned some blocks
-	c.Assert(len(blockFile.Blocks) > 0, IsTrue)
+	c.Assert(len(blockFile.BlockList) > 0, IsTrue)
 
 	// Clean up any old file
 	os.Remove(outputFile)
@@ -89,6 +89,8 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 	start = time.Now()
 	err = UnblockFile(blockFile.ID, outputFile)
 	end = time.Now()
+
+	fmt.Printf("Unblocked Tempest took: %v\n", end.Sub(start))
 
 	// No error
 	c.Assert(err == nil, IsTrue)
@@ -108,39 +110,33 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	// Get some info about the file we are going test
 	changedInputFileInfo, _ := os.Stat(changedInputFile)
 
-	err, blockFile := BlockFile(inputFile, "")
+	err, blockFile := BlockFile(inputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue)
 
-	firstFileBlockID := blockFile.Blocks[0].ID
+	firstFileHash := blockFile.BlockList[0].Hash
 
-	// Block the file again.  New version should be created
-	err, blockFile = BlockFile(inputFile, blockFile.ID)
+	// Block the file again.
+	err, blockFile = BlockFile(inputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue)
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
-
-	// File is new version so should be version 2
-	c.Assert(blockFile.Version == 2, IsTrue)
 
 	// Check that block used in first block is the same
-	c.Assert(firstFileBlockID == blockFile.Blocks[0].ID, IsTrue)
+	c.Assert(firstFileHash == blockFile.BlockList[0].Hash, IsTrue)
 
 	// Block the file again.  New version should be created
-	err, blockFile = BlockFile(changedInputFile, blockFile.ID)
+	err, blockFile = BlockFile(changedInputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue)
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
-
-	// File is new version so should be version 3
-	c.Assert(blockFile.Version == 3, IsTrue)
 
 	// Clean up any old file
 	os.Remove(changedOutputFile)

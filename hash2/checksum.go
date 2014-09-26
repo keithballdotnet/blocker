@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/sha256"
+	"encoding/hex"
 )
 
 // This returns the data's MD5 checksum.
@@ -22,6 +23,13 @@ func ComputeSha256Checksum(data []byte) []byte {
 	hash := sha256.New()
 	hash.Write(data)
 	return hash.Sum(nil)
+}
+
+// This returns the data's Sha256 checksum as a string representation
+func GetSha256HashString(data []byte) string {
+	hash := sha256.New()
+	hash.Write(data)
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
 }
 
 // This returns true if the data matches the provided checksum.

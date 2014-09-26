@@ -30,7 +30,7 @@ func (r BlockRepository) SaveBlock(block Block) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(r.path+block.ID+".json", bytes, 0644)
+	err = ioutil.WriteFile(r.path+block.Hash+".json", bytes, 0644)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
 		return err
@@ -40,10 +40,10 @@ func (r BlockRepository) SaveBlock(block Block) error {
 }
 
 // Get a block from the repository
-func (r BlockRepository) GetBlock(blockid string) (*Block, error) {
+func (r BlockRepository) GetBlock(blockHash string) (*Block, error) {
 	var block Block
 
-	readBytes, err := ioutil.ReadFile(r.path + blockid + ".json")
+	readBytes, err := ioutil.ReadFile(r.path + blockHash + ".json")
 	if err != nil {
 		log.Println(fmt.Sprintf("Error reading block : %v", err))
 		return nil, err
@@ -52,6 +52,18 @@ func (r BlockRepository) GetBlock(blockid string) (*Block, error) {
 	json.Unmarshal(readBytes, &block)
 
 	return &block, nil
+}
+
+// Check to see if a block exists
+func (r BlockRepository) CheckBlockExists(blockHash string) (bool, error) {
+	_, err := os.Stat(r.path + blockHash + ".json")
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 // BlockedFileRepository : a Couchbase Server repository

@@ -1,6 +1,7 @@
 package hash2
 
 import (
+	"encoding/hex"
 	. "github.com/Inflatablewoman/blocks/gocheck2"
 	. "gopkg.in/check.v1"
 	"testing"
@@ -33,4 +34,13 @@ func (s *ChecksumSuite) TestHash(c *C) {
 
 	ourSha256 := ComputeSha256Checksum(input)
 	c.Assert(ValidateSha256Checksum(input, ourSha256), IsTrue)
+
+	sha256AsString := GetSha256HashString(input)
+
+	// Make sure not empty string
+	c.Assert(sha256AsString != "", IsTrue)
+
+	// Ensure is the same as out previous hash
+	firstHashString := "sha256:" + hex.EncodeToString(ourSha256)
+	c.Assert(firstHashString == sha256AsString, IsTrue)
 }

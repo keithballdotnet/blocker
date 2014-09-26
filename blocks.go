@@ -2,34 +2,32 @@ package blocks
 
 import (
 	"code.google.com/p/go-uuid/uuid"
-	"errors"
 	"fmt"
 	"github.com/Inflatablewoman/blocks/crypto"
 	"github.com/Inflatablewoman/blocks/hash2"
 	"io"
 	"os"
+	"time"
 )
 
 // Block is that basic element of data that is to be stored in the database
 type Block struct {
-	ID   string
-	Hash []byte
-	Data []byte
+	Hash string `json:"hash"`
+	Data []byte `json:"data"`
 }
 
 // This is a form used to link the File to the Block without needing to load the full data from the database
 type FileBlock struct {
-	ID            string
-	BlockPosition int
-	Hash          []byte
+	BlockPosition int    `json:"position"`
+	Hash          string `json:"hash"`
 }
 
 // File is a representation of a blocks together to form a file
 type BlockedFile struct {
-	ID      string
-	Length  int64
-	Version int
-	Blocks  []FileBlock
+	ID        string      `json:"id"`
+	Length    int64       `json:"length"`
+	Created   time.Time   `json:"time"`
+	BlockList []FileBlock `json:"blocks"`
 }
 
 // 4Mb block size
@@ -44,12 +42,12 @@ const BlockSize30Kb int64 = 30720
 // 100kb block size
 const BlockSize100Kb int64 = 102400
 
-// Default block size
+// Set default blocksize to 1Mb
 var BlockSize int64 = BlockSize1Mb
 
 // Create a new file.
 // Expects a filename.  Returns any error or the ID of the new file
-func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile) {
+func BlockFile(sourceFilepath string) (error, BlockedFile) {
 
 	// open the file and read the contents
 	sourceFile, err := os.Open(sourceFilepath)
@@ -74,15 +72,6 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 		return err, BlockedFile{}
 	}
 
-	// Initial version
-	blockedFileVersion := 1
-
-	// var existingBlockFile BlockedFile
-	existingBlockFile, err := blockedFileRepository.GetBlockedFile(blockedFileID)
-	if err == nil && existingBlockFile != nil {
-		blockedFileVersion = existingBlockFile.Version + 1
-	}
-
 	var blockCount int
 	var fileLength int64
 	// Keep reading blocks of data from the file until we have read less than the BlockSize
@@ -95,22 +84,15 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 		}
 
 		// Calculate the hash of the block
-		hash := hash2.ComputeSha256Checksum(data[:count])
+		hash := hash2.GetSha256HashString(data[:count])
 
-		blockId := ""
-		// If we have an existing version of this document.  Check to see if this block is the same.
-		if existingBlockFile != nil {
-			// Detect if block is same as existing block
-			for _, existingFileBlock := range existingBlockFile.Blocks {
-				if existingFileBlock.BlockPosition == blockCount && hash2.CompareChecksums(existingFileBlock.Hash, hash) {
-					// We have a match for the block.  Set the blockId.  No need to store to repository
-					blockId = existingFileBlock.ID
-					// fmt.Println("Reusing block:", blockId)
-				}
-			}
+		// Do we already have this block stored?
+		blockExists, err := blockRepository.CheckBlockExists(hash)
+		if err != nil {
+			return err, BlockedFile{}
 		}
 
-		if blockId == "" {
+		if !blockExists {
 			// Encrypt the data
 			encryptedData, err := crypto.AesCfbEncrypt(data[:count])
 			if err != nil {
@@ -118,24 +100,19 @@ func BlockFile(sourceFilepath string, blockedFileID string) (error, BlockedFile)
 			}
 
 			// Create our file structure
-			block := Block{uuid.New(), hash, encryptedData}
+			block := Block{hash, encryptedData}
 
 			// Commit block to repository
 			blockRepository.SaveBlock(block)
-			blockId = block.ID
-
-			// fmt.Println("Created block:", blockId)
 		}
 
-		fileblock := FileBlock{blockId, blockCount, hash}
+		fileblock := FileBlock{blockCount, hash}
 
 		// Add the file block to the list of blocks
 		fileblocks = append(fileblocks, fileblock)
-
-		// fmt.Printf("Block #%d - ID %v read %d bytes\n", blockCount, blockId, count)
 	}
 
-	blockedFile := BlockedFile{uuid.New(), fileLength, blockedFileVersion, fileblocks}
+	blockedFile := BlockedFile{uuid.New(), fileLength, time.Now(), fileblocks}
 
 	blockedFileRepository.SaveBlockedFile(blockedFile)
 
@@ -169,11 +146,11 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 	defer outFile.Close()
 
 	var offSet int64 = 0
-	for _, fileBlock := range blockedFile.Blocks {
+	for _, fileBlock := range blockedFile.BlockList {
 
 		// fmt.Printf("Got block #%d with ID %v\n", i+1, fileBlock.ID)
 
-		block, err := blockRepository.GetBlock(fileBlock.ID)
+		block, err := blockRepository.GetBlock(fileBlock.Hash)
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 			return err
@@ -184,12 +161,6 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 			return err
-		}
-
-		// Validate the hash
-		if !hash2.ValidateSha256Checksum(decryptedData, block.Hash) {
-			fmt.Println("Invalid block hash")
-			return errors.New("Invalid block hash")
 		}
 
 		// Write out this block to the file
