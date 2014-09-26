@@ -71,7 +71,8 @@ func (r BlockRepository) CheckBlockExists(blockHash string) (bool, error) {
 
 // BlockedFileRepository : a Couchbase Server repository
 type BlockedFileRepository struct {
-	bucket *couchbase.Bucket
+	bucket         *couchbase.Bucket
+	InMemoryBucket map[string]*BlockedFile
 }
 
 // NewBlockedFileRepository
@@ -79,14 +80,20 @@ func NewBlockedFileRepository() (BlockedFileRepository, error) {
 	bucket, err := couchbase.GetBucket("http://localhost:8091", "default", "blockedfiles")
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting bucket:  %v", err))
-		return BlockedFileRepository{}, err
+		// NOTE:  I want this to run without a couchbase installation, so in event of error use a in memory store
+		return BlockedFileRepository{nil, make(map[string]*BlockedFile)}, nil
 	}
 
-	return BlockedFileRepository{bucket}, nil
+	return BlockedFileRepository{bucket, nil}, nil
 }
 
 // Save persists a BlockedFile into the repository
 func (r BlockedFileRepository) SaveBlockedFile(blockedFile BlockedFile) error {
+	if r.bucket == nil {
+		r.InMemoryBucket[blockedFile.ID] = &blockedFile
+		return nil
+	}
+
 	return r.bucket.Set(blockedFile.ID, 0, blockedFile)
 }
 
@@ -94,6 +101,10 @@ func (r BlockedFileRepository) SaveBlockedFile(blockedFile BlockedFile) error {
 func (r BlockedFileRepository) GetBlockedFile(blockfileid string) (*BlockedFile, error) {
 	if blockfileid == "" {
 		return nil, errors.New("No Block File ID passed")
+	}
+
+	if r.bucket == nil {
+		return r.InMemoryBucket[blockfileid], nil
 	}
 
 	var blockedFile BlockedFile

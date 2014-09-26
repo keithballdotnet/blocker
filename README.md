@@ -10,3 +10,4 @@ Block Filesystem in go
 - Blocks are hashed
 - Blocks are encrypted
 - Files where blocks have not changed reference old blocks
+l
