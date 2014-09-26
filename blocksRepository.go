@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-// BlockRepository : a Couchbase Server repository
+// BlockRepository : Saves blocks to disk
 type BlockRepository struct {
 	path string
 }

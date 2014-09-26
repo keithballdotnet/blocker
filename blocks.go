@@ -46,7 +46,7 @@ const BlockSize100Kb int64 = 102400
 var BlockSize int64 = BlockSize1Mb
 
 // Create a new file.
-// Expects a filename.  Returns any error or the ID of the new file
+// Expects a filename.  Returns any error or the created BlockedFile
 func BlockFile(sourceFilepath string) (error, BlockedFile) {
 
 	// open the file and read the contents

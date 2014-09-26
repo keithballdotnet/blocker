@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-func CBCDecrypt(encryptedBytes []byte) ([]byte, error) {
+/*func CBCDecrypt(encryptedBytes []byte) ([]byte, error) {
 	key := []byte("a very very very very secret key") // 32 bytes
 
 	block, err := aes.NewCipher(key)
@@ -78,8 +78,9 @@ func CBCEncrypt(bytesToEncrypt []byte) ([]byte, error) {
 	// be secure.
 
 	return encryptedBytes, nil
-}
+}*/
 
+// Encrpyt data using AES with the CFB chipher mode
 func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
 	key := []byte("a very very very very secret key") // 32 bytes
 
@@ -106,6 +107,7 @@ func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
 	return encryptedBytes, nil
 }
 
+// Encrpyt data using AES with the CFB chipher mode
 func AesCfbEncrypt(bytesToEncrypt []byte) ([]byte, error) {
 	key := []byte("a very very very very secret key") // 32 bytes
 

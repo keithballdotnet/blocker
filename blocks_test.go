@@ -106,6 +106,13 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
 }
 
+// Benchmark the blocking of Tempest file
+func (s *BlockSuite) BenchmarkTempest(c *C) {
+	for i := 0; i < c.N; i++ {
+		BlockFile(inputFile)
+	}
+}
+
 func (s *BlockSuite) TestChangeTempest(c *C) {
 
 	// Use 1Mb Blocks
