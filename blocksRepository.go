@@ -17,9 +17,12 @@ type BlockRepository struct {
 
 // NewBlockRepository
 func NewBlockRepository() (BlockRepository, error) {
-	os.MkdirAll("/tmp/blocks/", os.ModeDir)
 
-	return BlockRepository{"/tmp/blocks/"}, nil
+	depositoryDir := os.TempDir() + "/blocks/"
+
+	os.MkdirAll(depositoryDir, os.ModeDir)
+
+	return BlockRepository{depositoryDir}, nil
 }
 
 // Save persists a block into the repository
