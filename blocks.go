@@ -33,16 +33,19 @@ type BlockedFile struct {
 }
 
 // 4Mb block size
-// const BlockSize int64 = 4194304
+const BlockSize4Mb int64 = 4194304
 
 // 1Mb block size
-//const BlockSize int64 = 1048576
+const BlockSize1Mb int64 = 1048576
 
 // Will start with small 30kb chunks to start with
-// const BlockSize int64 = 30720
+const BlockSize30Kb int64 = 30720
 
 // 100kb block size
-const BlockSize int64 = 102400
+const BlockSize100Kb int64 = 102400
+
+// Default block size
+var BlockSize int64 = BlockSize1Mb
 
 // Create a new file.
 // Expects a filename.  Returns any error or the ID of the new file
@@ -164,8 +167,6 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 		return err
 	}
 	defer outFile.Close()
-
-	fmt.Println("Got file: " + blockedFile.ID)
 
 	var offSet int64 = 0
 	for _, fileBlock := range blockedFile.Blocks {

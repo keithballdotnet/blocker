@@ -1,4 +1,11 @@
 Block Filesystem in go
 =======
 
-Just messing about...
+Features
+=======
+
+- Files are stored in blocks
+- Blocks are hashed
+- Blocks are encrypted
+- Files are versioned
+- Files where blocks have not changed reference old blocks

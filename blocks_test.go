@@ -18,35 +18,54 @@ type BlockSuite struct {
 
 var _ = Suite(&BlockSuite{})
 
-func (s *BlockSuite) TestCreateFile(c *C) {
+const inputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt"
+const bibleInFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/kjv.txt"
+const bibleOutFile = "/tmp/kjv.txt"
+const changedInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed.txt"
+const changedAgainInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed_again.txt"
+const outputFile = "/tmp/tempest.txt"
+const changedOutputFile = "/tmp/tempest_changed.txt"
 
-	// NOTE:  Change this path
-	const inputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt"
-	const bibleInFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/kjv.txt"
-	const bibleOutFile = "/tmp/kjv.txt"
-	const changedInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed.txt"
-	const changedAgainInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed_again.txt"
-	const outputFile = "/tmp/tempest.txt"
-	const changedOutputFile = "/tmp/tempest_changed.txt"
+func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
+
+	BlockSize = BlockSize1Mb
+
+	// Block the bigger
+	start := time.Now()
+	err, bibleBlockFile := BlockFile(bibleInFile, "")
+	end := time.Now()
+
+	fmt.Printf("Blocked King James Bible took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	// Clean up any old file
+	os.Remove(bibleOutFile)
+
+	// Get the file and create a copy to the output
+	start = time.Now()
+	err = UnblockFile(bibleBlockFile.ID, bibleOutFile)
+	end = time.Now()
+
+	fmt.Printf("Unblocked King James Bible took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+}
+
+func (s *BlockSuite) Test30KbTempest(c *C) {
+	BlockSize = BlockSize30Kb
 
 	// Get some info about the file we are going test
 	inputFileInfo, _ := os.Stat(inputFile)
-	// Get some info about the file we are going test
-	changedInputFileInfo, _ := os.Stat(changedInputFile)
 
 	// Block the file
 	start := time.Now()
 	err, blockFile := BlockFile(inputFile, "")
 	end := time.Now()
 
-	fmt.Printf("Blocked Tempest took: %v\n", end.Sub(start))
-
-	// Block the bigger
-	start = time.Now()
-	err, bibleBlockFile := BlockFile(bibleInFile, "")
-	end = time.Now()
-
-	fmt.Printf("Blocked King James Bible took: %v\n", end.Sub(start))
+	fmt.Printf("Blocked Tempest at 30Kb took: %v\n", end.Sub(start))
 
 	// No error
 	c.Assert(err == nil, IsTrue)
@@ -63,9 +82,6 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	// Make sure the item returned some blocks
 	c.Assert(len(blockFile.Blocks) > 0, IsTrue)
 
-	// We have the file
-	fmt.Println("Block file: ", blockFile)
-
 	// Clean up any old file
 	os.Remove(outputFile)
 
@@ -74,29 +90,30 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	err = UnblockFile(blockFile.ID, outputFile)
 	end = time.Now()
 
-	fmt.Printf("Unblocked tempest took: %v\n", end.Sub(start))
-
-	// Clean up any old file
-	os.Remove(bibleOutFile)
-
-	// Get the file and create a copy to the output
-	start = time.Now()
-	err = UnblockFile(bibleBlockFile.ID, bibleOutFile)
-	end = time.Now()
-
-	fmt.Printf("Unblocked King James Bible took: %v\n", end.Sub(start))
-
 	// No error
 	c.Assert(err == nil, IsTrue)
 
 	// Get some info about the file we are going test
 	outputFileInfo, _ := os.Stat(outputFile)
 
-	fmt.Printf("Input filesize: %v\n", inputFileInfo.Size())
-	fmt.Printf("Output filesize: %v\n", outputFileInfo.Size())
-
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
+}
+
+func (s *BlockSuite) TestChangeTempest(c *C) {
+
+	// Use 1Mb Blocks
+	BlockSize = BlockSize1Mb
+
+	// Get some info about the file we are going test
+	changedInputFileInfo, _ := os.Stat(changedInputFile)
+
+	err, blockFile := BlockFile(inputFile, "")
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	firstFileBlockID := blockFile.Blocks[0].ID
 
 	// Block the file again.  New version should be created
 	err, blockFile = BlockFile(inputFile, blockFile.ID)
@@ -110,8 +127,8 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	// File is new version so should be version 2
 	c.Assert(blockFile.Version == 2, IsTrue)
 
-	// We have the file
-	fmt.Println("Block file: ", blockFile)
+	// Check that block used in first block is the same
+	c.Assert(firstFileBlockID == blockFile.Blocks[0].ID, IsTrue)
 
 	// Block the file again.  New version should be created
 	err, blockFile = BlockFile(changedInputFile, blockFile.ID)
@@ -125,9 +142,6 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	// File is new version so should be version 3
 	c.Assert(blockFile.Version == 3, IsTrue)
 
-	// We have the file
-	fmt.Println("Block file: ", blockFile)
-
 	// Clean up any old file
 	os.Remove(changedOutputFile)
 
@@ -138,10 +152,7 @@ func (s *BlockSuite) TestCreateFile(c *C) {
 	c.Assert(err == nil, IsTrue)
 
 	// Get some info about the file we are going test
-	outputFileInfo, _ = os.Stat(changedOutputFile)
-
-	fmt.Printf("Input (CHANGED) filesize: %v\n", changedInputFileInfo.Size())
-	fmt.Printf("Output (CHANGED) filesize: %v\n", outputFileInfo.Size())
+	outputFileInfo, _ := os.Stat(changedOutputFile)
 
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == changedInputFileInfo.Size(), IsTrue)
