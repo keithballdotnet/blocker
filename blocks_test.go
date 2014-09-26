@@ -18,13 +18,13 @@ type BlockSuite struct {
 
 var _ = Suite(&BlockSuite{})
 
-const inputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest.txt"
-const bibleInFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/kjv.txt"
-const bibleOutFile = "/tmp/kjv.txt"
-const changedInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed.txt"
-const changedAgainInputFile = "/home/keithball/Projects/src/blocks/src/github.com/Inflatablewoman/blocks/Resources/tempest_changed_again.txt"
-const outputFile = "/tmp/tempest.txt"
-const changedOutputFile = "/tmp/tempest_changed.txt"
+const inputFile = "testdata/tempest.txt"
+const bibleInFile = "testdata/kjv.txt"
+const bibleOutFileName = "kjv.txt"
+const changedInputFile = "testdata/tempest_changed.txt"
+const changedAgainInputFile = "/testdata/tempest_changed_again.txt"
+const outputFileName = "tempest.txt"
+const changedOutputFileName = "tempest_changed.txt"
 
 func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
 
@@ -38,7 +38,9 @@ func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
 	fmt.Printf("Blocked King James Bible took: %v\n", end.Sub(start))
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	bibleOutFile := os.TempDir() + "/" + bibleOutFileName
 
 	// Clean up any old file
 	os.Remove(bibleOutFile)
@@ -51,7 +53,7 @@ func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
 	fmt.Printf("Unblocked King James Bible took: %v\n", end.Sub(start))
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
 
 func (s *BlockSuite) Test30KbTempest(c *C) {
@@ -68,7 +70,7 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 	fmt.Printf("Blocked Tempest at 30Kb took: %v\n", end.Sub(start))
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
@@ -82,6 +84,8 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 	// Make sure the item returned some blocks
 	c.Assert(len(blockFile.BlockList) > 0, IsTrue)
 
+	outputFile := os.TempDir() + "/" + outputFileName
+
 	// Clean up any old file
 	os.Remove(outputFile)
 
@@ -93,7 +97,7 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 	fmt.Printf("Unblocked Tempest took: %v\n", end.Sub(start))
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Get some info about the file we are going test
 	outputFileInfo, _ := os.Stat(outputFile)
@@ -105,7 +109,7 @@ func (s *BlockSuite) Test30KbTempest(c *C) {
 func (s *BlockSuite) TestChangeTempest(c *C) {
 
 	// Use 1Mb Blocks
-	BlockSize = BlockSize1Mb
+	BlockSize = BlockSize30Kb
 
 	// Get some info about the file we are going test
 	changedInputFileInfo, _ := os.Stat(changedInputFile)
@@ -113,7 +117,7 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	err, blockFile := BlockFile(inputFile)
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	firstFileHash := blockFile.BlockList[0].Hash
 
@@ -121,7 +125,7 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	err, blockFile = BlockFile(inputFile)
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
@@ -133,10 +137,12 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	err, blockFile = BlockFile(changedInputFile)
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
+
+	changedOutputFile := os.TempDir() + "/" + changedOutputFileName
 
 	// Clean up any old file
 	os.Remove(changedOutputFile)
@@ -145,7 +151,7 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	err = UnblockFile(blockFile.ID, changedOutputFile)
 
 	// No error
-	c.Assert(err == nil, IsTrue)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Get some info about the file we are going test
 	outputFileInfo, _ := os.Stat(changedOutputFile)
@@ -153,3 +159,21 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == changedInputFileInfo.Size(), IsTrue)
 }
+
+/*func (s *BlockSuite) TestBlockRepository(c *C) {
+
+	// Get repository
+	repository, err := NewBlockRepository()
+	c.Assert(err == nil, IsTrue)
+
+	hash := "sha256:justalonghashthatgoesonandonandon"
+	data := []byte(hash)
+
+	// Create a block
+	block := Block{hash, data}
+
+	// Save
+	err = repository.SaveBlock(block)
+	c.Assert(err == nil, IsTrue)
+
+}*/
