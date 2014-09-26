@@ -1,8 +1,10 @@
 Block Filesystem in go
 =======
 
-Features
-=====
+[![GoDoc](https://godoc.org/github.com/Inflatablewoman/blocks?status.svg)](https://godoc.org/github.com/Inflatablewoman/blocks)
+[![Build Status](https://drone.io/github.com/Inflatablewoman/blocks/status.png)](https://drone.io/github.com/Inflatablewoman/blocks/latest)
+
+##Features
 
 - Files are stored in blocks
 - Blocks are hashed
