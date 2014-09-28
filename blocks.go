@@ -2,6 +2,7 @@ package blocks
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"code.google.com/p/snappy-go/snappy"
 	"fmt"
 	"github.com/Inflatablewoman/blocks/crypto"
 	"github.com/Inflatablewoman/blocks/hash2"
@@ -42,8 +43,11 @@ const BlockSize30Kb int64 = 30720
 // 100kb block size
 const BlockSize100Kb int64 = 102400
 
-// Set default blocksize to 1Mb
-var BlockSize int64 = BlockSize1Mb
+// Set default blocksize to 4Mb
+var BlockSize int64 = BlockSize4Mb
+
+// Compression is on by default
+var UseCompression bool = true
 
 // Create a new file.
 // Expects a filename.  Returns any error or the created BlockedFile
@@ -93,8 +97,14 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 		}
 
 		if !blockExists {
+			// Compress the data
+			compressedData, err := snappy.Encode(nil, data[:count])
+			if err != nil {
+				return err, BlockedFile{}
+			}
+
 			// Encrypt the data
-			encryptedData, err := crypto.AesCfbEncrypt(data[:count])
+			encryptedData, err := crypto.AesCfbEncrypt(compressedData)
 			if err != nil {
 				return err, BlockedFile{}
 			}
@@ -163,8 +173,14 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 			return err
 		}
 
+		// Uncompress the data
+		unCompressedData, err := snappy.Decode(nil, decryptedData)
+		if err != nil {
+			return err
+		}
+
 		// Write out this block to the file
-		bytesWritten, err := outFile.WriteAt(decryptedData, offSet)
+		bytesWritten, err := outFile.WriteAt(unCompressedData, offSet)
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 			return err

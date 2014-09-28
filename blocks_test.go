@@ -25,10 +25,38 @@ const changedInputFile = "testdata/tempest_changed.txt"
 const changedAgainInputFile = "/testdata/tempest_changed_again.txt"
 const outputFileName = "tempest.txt"
 const changedOutputFileName = "tempest_changed.txt"
+const liteIdeInFile = "testdata/liteidex23.2.linux-32.tar.bz2"
+const liteIdeoutFile = "liteidex23.2.linux-32.tar.bz2"
 
-func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
+func (s *BlockSuite) TestLiteide(c *C) {
 
-	BlockSize = BlockSize1Mb
+	// Block the bigger
+	start := time.Now()
+	err, bibleBlockFile := BlockFile(liteIdeInFile)
+	end := time.Now()
+
+	fmt.Printf("Blocked LiteIde took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	bibleOutFile := os.TempDir() + "/" + liteIdeoutFile
+
+	// Clean up any old file
+	os.Remove(bibleOutFile)
+
+	// Get the file and create a copy to the output
+	start = time.Now()
+	err = UnblockFile(bibleBlockFile.ID, bibleOutFile)
+	end = time.Now()
+
+	fmt.Printf("Unblocked LiteIde took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+}
+
+func (s *BlockSuite) TestKingJamesBible(c *C) {
 
 	// Block the bigger
 	start := time.Now()
@@ -56,8 +84,7 @@ func (s *BlockSuite) Test1MbKingJamesBible(c *C) {
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
 
-func (s *BlockSuite) Test30KbTempest(c *C) {
-	BlockSize = BlockSize30Kb
+func (s *BlockSuite) TestTempest(c *C) {
 
 	// Get some info about the file we are going test
 	inputFileInfo, _ := os.Stat(inputFile)

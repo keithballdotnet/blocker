@@ -9,5 +9,6 @@ Block Filesystem in go
 - Files are stored in blocks
 - Blocks are hashed
 - Blocks are encrypted
+- Blocks are compressed using Snappy Compression
 - Files where blocks have not changed reference old blocks
 l
