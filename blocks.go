@@ -49,6 +49,30 @@ var BlockSize int64 = BlockSize4Mb
 // Compression is on by default
 var UseCompression bool = true
 
+// Use Encryption
+var UseEncryption bool = true
+
+// Repository for blockedFiles
+var blockedFileRepository BlockedFileRepository
+
+// Repository for blocks
+var blockRepository BlockRepository
+
+func init() {
+	var err error
+	// Create persistent store for BlockedFiles
+	blockedFileRepository, err = NewBlockedFileRepository()
+	if err != nil {
+		panic(err)
+	}
+
+	// Create peristent store for blocks
+	blockRepository, err = NewBlockRepository()
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Create a new file.
 // Expects a filename.  Returns any error or the created BlockedFile
 func BlockFile(sourceFilepath string) (error, BlockedFile) {
@@ -64,17 +88,6 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 	data := make([]byte, BlockSize)
 
 	fileblocks := make([]FileBlock, 0)
-
-	// Create peristent store for blocks
-	blockRepository, err := NewBlockRepository()
-	if err != nil {
-		return err, BlockedFile{}
-	}
-
-	blockedFileRepository, err := NewBlockedFileRepository()
-	if err != nil {
-		return err, BlockedFile{}
-	}
 
 	var blockCount int
 	var fileLength int64
@@ -97,20 +110,27 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 		}
 
 		if !blockExists {
-			// Compress the data
-			compressedData, err := snappy.Encode(nil, data[:count])
-			if err != nil {
-				return err, BlockedFile{}
+
+			storeData := data[:count]
+
+			if UseCompression {
+				// Compress the data
+				storeData, err = snappy.Encode(nil, storeData)
+				if err != nil {
+					return err, BlockedFile{}
+				}
 			}
 
-			// Encrypt the data
-			encryptedData, err := crypto.AesCfbEncrypt(compressedData)
-			if err != nil {
-				return err, BlockedFile{}
+			if UseEncryption {
+				// Encrypt the data
+				storeData, err = crypto.AesCfbEncrypt(storeData)
+				if err != nil {
+					return err, BlockedFile{}
+				}
 			}
 
 			// Create our file structure
-			block := Block{hash, encryptedData}
+			block := Block{hash, storeData}
 
 			// Commit block to repository
 			blockRepository.SaveBlock(block)
@@ -130,18 +150,6 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 }
 
 func UnblockFile(blockFileID string, targetFilePath string) error {
-
-	// Get the repository for the blockedFiles
-	blockedFileRepository, err := NewBlockedFileRepository()
-	if err != nil {
-		return err
-	}
-
-	// Get peristent store for blocks
-	blockRepository, err := NewBlockRepository()
-	if err != nil {
-		return err
-	}
 
 	// Get the blocked file from the repository
 	blockedFile, err := blockedFileRepository.GetBlockedFile(blockFileID)
@@ -166,21 +174,27 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 			return err
 		}
 
-		// Decrypt the data
-		decryptedData, err := crypto.AesCfbDecrypt(block.Data)
-		if err != nil {
-			fmt.Println("Error: " + err.Error())
-			return err
+		storeData := block.Data
+
+		if UseEncryption {
+			// Decrypt the data
+			storeData, err = crypto.AesCfbDecrypt(storeData)
+			if err != nil {
+				fmt.Println("Error: " + err.Error())
+				return err
+			}
 		}
 
-		// Uncompress the data
-		unCompressedData, err := snappy.Decode(nil, decryptedData)
-		if err != nil {
-			return err
+		if UseCompression {
+			// Uncompress the data
+			storeData, err = snappy.Decode(nil, storeData)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Write out this block to the file
-		bytesWritten, err := outFile.WriteAt(unCompressedData, offSet)
+		bytesWritten, err := outFile.WriteAt(storeData, offSet)
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 			return err

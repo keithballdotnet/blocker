@@ -30,6 +30,10 @@ const liteIdeoutFile = "liteidex23.2.linux-32.tar.bz2"
 
 func (s *BlockSuite) TestLiteide(c *C) {
 
+	BlockSize = BlockSize4Mb
+	UseCompression = true
+	UseEncryption = true
+
 	// Block the bigger
 	start := time.Now()
 	err, bibleBlockFile := BlockFile(liteIdeInFile)
@@ -58,6 +62,10 @@ func (s *BlockSuite) TestLiteide(c *C) {
 
 func (s *BlockSuite) TestKingJamesBible(c *C) {
 
+	BlockSize = BlockSize4Mb
+	UseCompression = true
+	UseEncryption = true
+
 	// Block the bigger
 	start := time.Now()
 	err, bibleBlockFile := BlockFile(bibleInFile)
@@ -82,9 +90,14 @@ func (s *BlockSuite) TestKingJamesBible(c *C) {
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
 }
 
 func (s *BlockSuite) TestTempest(c *C) {
+
+	BlockSize = BlockSize4Mb
+	UseCompression = true
+	UseEncryption = true
 
 	// Get some info about the file we are going test
 	inputFileInfo, _ := os.Stat(inputFile)
@@ -94,7 +107,7 @@ func (s *BlockSuite) TestTempest(c *C) {
 	err, blockFile := BlockFile(inputFile)
 	end := time.Now()
 
-	fmt.Printf("Blocked Tempest at 30Kb took: %v\n", end.Sub(start))
+	fmt.Printf("Blocked Tempest took: %v\n", end.Sub(start))
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
@@ -134,16 +147,45 @@ func (s *BlockSuite) TestTempest(c *C) {
 }
 
 // Benchmark the blocking of Tempest file
-func (s *BlockSuite) BenchmarkTempest(c *C) {
+func (s *BlockSuite) BenchmarkTempestCompressedEncrypted30Kb(c *C) {
 	for i := 0; i < c.N; i++ {
+		// Set up test
+		BlockSize = BlockSize30Kb
+		UseCompression = true
+		UseEncryption = true
+		BlockFile(inputFile)
+	}
+}
+
+func (s *BlockSuite) BenchmarkTempestCompressedEncrypted4Mb(c *C) {
+	for i := 0; i < c.N; i++ {
+		// Set up test
+		BlockSize = BlockSize4Mb
+		UseCompression = true
+		UseEncryption = true
+		BlockFile(inputFile)
+	}
+}
+
+func (s *BlockSuite) BenchmarkTempestUncompressedUnencrypted4Mb(c *C) {
+	for i := 0; i < c.N; i++ {
+		// Set up test
+		BlockSize = BlockSize4Mb
+		UseCompression = false
+		UseEncryption = false
+
+		// Need to clean out the block store directory
+
 		BlockFile(inputFile)
 	}
 }
 
 func (s *BlockSuite) TestChangeTempest(c *C) {
 
-	// Use 1Mb Blocks
+	// Set up test
 	BlockSize = BlockSize30Kb
+	UseCompression = true
+	UseEncryption = true
 
 	// Get some info about the file we are going test
 	changedInputFileInfo, _ := os.Stat(changedInputFile)

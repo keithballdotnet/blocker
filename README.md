@@ -11,4 +11,11 @@ Block Filesystem in go
 - Blocks are encrypted
 - Blocks are compressed using Snappy Compression
 - Files where blocks have not changed reference old blocks
-l
+
+##TODO
+
+- Add REST inferface to file system
+- Add a way to delete files
+- Add testing to drone.io build
+
+
