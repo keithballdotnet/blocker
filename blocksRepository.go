@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 // BlockRepository : Saves blocks to disk
@@ -18,9 +19,12 @@ type BlockRepository struct {
 // NewBlockRepository
 func NewBlockRepository() (BlockRepository, error) {
 
-	depositoryDir := os.TempDir() + "/blocks/"
+	depositoryDir := filepath.Join(os.TempDir(), "blocks")
 
-	os.MkdirAll(depositoryDir, os.ModeDir)
+	err := os.Mkdir(depositoryDir, 0777)
+	if err != nil && !os.IsExist(err) {
+		panic("Unable to create directory: " + err.Error())
+	}
 
 	return BlockRepository{depositoryDir}, nil
 }
@@ -33,7 +37,7 @@ func (r BlockRepository) SaveBlock(block Block) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(r.path+block.Hash+".json", bytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(r.path, block.Hash+".json"), bytes, 0644)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
 		return err
@@ -46,7 +50,7 @@ func (r BlockRepository) SaveBlock(block Block) error {
 func (r BlockRepository) GetBlock(blockHash string) (*Block, error) {
 	var block Block
 
-	readBytes, err := ioutil.ReadFile(r.path + blockHash + ".json")
+	readBytes, err := ioutil.ReadFile(filepath.Join(r.path, blockHash+".json"))
 	if err != nil {
 		log.Println(fmt.Sprintf("Error reading block : %v", err))
 		return nil, err

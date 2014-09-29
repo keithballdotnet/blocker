@@ -37,7 +37,7 @@ const BlockSize4Mb int64 = 4194304
 // 1Mb block size
 const BlockSize1Mb int64 = 1048576
 
-// Will start with small 30kb chunks to start with
+// 30kb block size
 const BlockSize30Kb int64 = 30720
 
 // 100kb block size
@@ -49,7 +49,7 @@ var BlockSize int64 = BlockSize4Mb
 // Compression is on by default
 var UseCompression bool = true
 
-// Use Encryption
+// Use Encryption is on by default
 var UseEncryption bool = true
 
 // Repository for blockedFiles
@@ -58,6 +58,7 @@ var blockedFileRepository BlockedFileRepository
 // Repository for blocks
 var blockRepository BlockRepository
 
+// Set up repositories in the init to keep connections alive
 func init() {
 	var err error
 	// Create persistent store for BlockedFiles
@@ -149,6 +150,7 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 	return nil, blockedFile
 }
 
+// Takes a file ID.  Unblocks the files from the underlying system and then writes the file to the target file path
 func UnblockFile(blockFileID string, targetFilePath string) error {
 
 	// Get the blocked file from the repository
