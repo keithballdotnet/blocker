@@ -16,6 +16,5 @@ Block Filesystem in go
 
 - Add REST inferface to file system
 - Add a way to delete files
-- Add testing to drone.io build
 
 
