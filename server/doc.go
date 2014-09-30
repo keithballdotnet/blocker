@@ -1,4 +1,4 @@
-// Package server is used to server blocks via http
+// Package server is used to serve blocked files via http
 //
 // Current version: experimental
 //
