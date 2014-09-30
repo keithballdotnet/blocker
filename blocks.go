@@ -116,7 +116,6 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 
 			// Compress the data
 			if UseCompression {
-
 				storeData, err = snappy.Encode(nil, storeData)
 				if err != nil {
 					return err, BlockedFile{}
