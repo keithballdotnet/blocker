@@ -173,7 +173,6 @@ func (s *BlockSuite) BenchmarkTempestUncompressedUnencrypted4Mb(c *C) {
 		BlockSize = BlockSize4Mb
 		UseCompression = false
 		UseEncryption = false
-
 		// Need to clean out the block store directory
 
 		BlockFile(inputFile)

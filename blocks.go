@@ -114,16 +114,17 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 
 			storeData := data[:count]
 
+			// Compress the data
 			if UseCompression {
-				// Compress the data
+
 				storeData, err = snappy.Encode(nil, storeData)
 				if err != nil {
 					return err, BlockedFile{}
 				}
 			}
 
+			// Encrypt the data
 			if UseEncryption {
-				// Encrypt the data
 				storeData, err = crypto.AesCfbEncrypt(storeData)
 				if err != nil {
 					return err, BlockedFile{}
@@ -178,8 +179,8 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 
 		storeData := block.Data
 
+		// Decrypt the data
 		if UseEncryption {
-			// Decrypt the data
 			storeData, err = crypto.AesCfbDecrypt(storeData)
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
@@ -187,8 +188,9 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 			}
 		}
 
+		// Uncompress the data
 		if UseCompression {
-			// Uncompress the data
+
 			storeData, err = snappy.Decode(nil, storeData)
 			if err != nil {
 				return err

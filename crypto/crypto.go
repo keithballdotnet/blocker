@@ -4,85 +4,184 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/hex"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
+	"math/big"
+	"os"
+	"path/filepath"
+	"time"
 )
 
-/*func CBCDecrypt(encryptedBytes []byte) ([]byte, error) {
-	key := []byte("a very very very very secret key") // 32 bytes
+// Path to the certificate
+var certifcatePath = filepath.Join(os.TempDir(), "blocks", "cert.pem")
 
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
+// Path to the private key
+var keyPath = filepath.Join(os.TempDir(), "blocks", "key.pem")
 
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	if len(encryptedBytes) < aes.BlockSize {
-		return nil, errors.New("encryptedBytes too short")
-	}
-	iv := encryptedBytes[:aes.BlockSize]
-	encryptedBytes = encryptedBytes[aes.BlockSize:]
+// Path to the encrypted aes key
+var aesKeyPath = filepath.Join(os.TempDir(), "blocks", "aes.key")
 
-	// CBC mode always works in whole blocks.
-	if len(encryptedBytes)%aes.BlockSize != 0 {
-		return nil, errors.New("encryptedBytes is not a multiple of the block size")
-	}
+// The key to be used to encrypt and decrypt when using RSA encryption
+var rsaEncryptionChipher RsaChipher
 
-	mode := cipher.NewCBCDecrypter(block, iv)
-
-	// CryptBlocks can work in-place if the two arguments are the same.
-	mode.CryptBlocks(encryptedBytes, encryptedBytes)
-
-	// If the original plaintext lengths are not a multiple of the block
-	// size, padding would have to be added when encrypting, which would be
-	// removed at this point. For an example, see
-	// https://tools.ietf.org/html/rfc5246#section-6.2.3.2. However, it's
-	// critical to note that ciphertexts must be authenticated (i.e. by
-	// using crypto/hmac) before being decrypted in order to avoid creating
-	// a padding oracle.
-
-	return encryptedBytes, nil
+// Structure for encryption chipher
+type RsaChipher struct {
+	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
 }
 
-// Encrypt a slice of bytes
-func CBCEncrypt(bytesToEncrypt []byte) ([]byte, error) {
-	key := []byte("a very very very very secret key") // 32 bytes
+func init() {
+	LoadOrGenerateKey()
+}
 
-	// CBC mode works on blocks so plaintexts may need to be padded to the
-	// next whole block. For an example of such padding, see
-	// https://tools.ietf.org/html/rfc5246#section-6.2.3.2. Here we'll
-	// assume that the plaintext is already of the correct length.
-	if len(bytesToEncrypt)%aes.BlockSize != 0 {
-		return nil, errors.New("bytesToEncrypt is not a multiple of the block size")
+// Load or Generate a RSA certiciate
+func LoadOrGenerateKey() {
+
+	// Read key
+	keyBytes, err := ioutil.ReadFile(keyPath)
+	if err == nil {
+		// Get private key
+		block, _ := pem.Decode(keyBytes)
+		privatekey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+
+		// Set object
+		rsaEncryptionChipher = RsaChipher{privatekey, &privatekey.PublicKey}
+
+		// We are done
+		return
 	}
 
-	block, err := aes.NewCipher(key)
+	// No load of existing key.  Generate a new one.
+	GenerateKey()
+}
+
+// Generate a new key
+func GenerateKey() {
+
+	// Generate a 256 bit private key for use with the encryption
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
+		log.Fatalf("failed to generate private key: %s", err)
+		return
+	}
+
+	now := time.Now()
+
+	template := x509.Certificate{
+		SerialNumber: new(big.Int).SetInt64(0),
+		Subject: pkix.Name{
+			CommonName:   "Acme Encryption Certificate",
+			Organization: []string{"Acme Co"},
+		},
+		NotBefore: now.Add(-5 * time.Minute).UTC(),
+		NotAfter:  now.AddDate(1, 0, 0).UTC(), // valid for 1 year.
+
+		SubjectKeyId: []byte{1, 2, 3, 4},
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	if err != nil {
+		log.Fatalf("Failed to create certificate: %s", err)
+		return
+	}
+
+	certOut, err := os.Create(certifcatePath)
+	if err != nil {
+		log.Fatalf("failed to open cert.pem for writing: %s", err)
+		return
+	}
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	certOut.Close()
+	log.Print("written cert.pem\n")
+
+	keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Print("failed to open key.pem for writing:", err)
+		return
+	}
+
+	marashelledPrivateKeyBytes := x509.MarshalPKCS1PrivateKey(priv)
+
+	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: marashelledPrivateKeyBytes})
+	keyOut.Close()
+
+	log.Print("Wrote Certificate to disk.")
+
+	// Now set object
+	rsaEncryptionChipher = RsaChipher{priv, &priv.PublicKey}
+}
+
+// Encrypt data using RSA and a public key
+func RsaEncrypt(bytesToEncrypt []byte) ([]byte, error) {
+	return rsa.EncryptPKCS1v15(rand.Reader, rsaEncryptionChipher.PublicKey, bytesToEncrypt)
+}
+
+// Decrypt data using RSA and a private key
+func RsaDecrypt(encryptedBytes []byte) ([]byte, error) {
+	return rsa.DecryptPKCS1v15(rand.Reader, rsaEncryptionChipher.PrivateKey, encryptedBytes)
+}
+
+// Create a new Aes Secret
+func GenerateAesSecret() []byte {
+	key := make([]byte, 32)
+	io.ReadFull(rand.Reader, key)
+	return key
+}
+
+// Get the AES secret to be used for encryption
+func GetAesSecret() (aesSecret []byte, err error) {
+	// Read key
+	keyBytes, err := ioutil.ReadFile(aesKeyPath)
+	if err == nil {
+		return RsaDecrypt(keyBytes)
+	}
+
+	// Create new Aes Secret
+	newAesKey := GenerateAesSecret()
+
+	// Encrypt the key for later use
+	encryptedKey, err := RsaEncrypt(newAesKey)
+	if err != nil {
+		log.Println(fmt.Sprintf("Error writing file : %v", err))
 		return nil, err
 	}
 
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	encryptedBytes := make([]byte, aes.BlockSize+len(bytesToEncrypt))
-	iv := bytesToEncrypt[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	// Save encrypted key to disk
+	err = ioutil.WriteFile(aesKeyPath, encryptedKey, 0644)
+	if err != nil {
+		log.Println(fmt.Sprintf("Error writing file : %v", err))
 		return nil, err
 	}
 
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(bytesToEncrypt[aes.BlockSize:], encryptedBytes)
+	return newAesKey, nil
+}
 
-	// It's important to remember that ciphertexts must be authenticated
-	// (i.e. by using crypto/hmac) as well as being encrypted in order to
-	// be secure.
+// Hex to bytes
+func hex2Bytes(hexStr string) ([]byte, error) {
+	return hex.DecodeString(hexStr)
+}
 
-	return encryptedBytes, nil
-}*/
+// Bytes to hex
+func encodeHex(bytes []byte) string {
+	return fmt.Sprintf("%x", bytes)
+}
 
 // Encrpyt data using AES with the CFB chipher mode
 func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
-	key := []byte("a very very very very secret key") // 32 bytes
+	// key := []byte("a very very very very secret key") // 32 bytes
+	key, err := GetAesSecret()
+	if err != nil {
+		return nil, err
+	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -109,7 +208,11 @@ func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
 
 // Encrpyt data using AES with the CFB chipher mode
 func AesCfbEncrypt(bytesToEncrypt []byte) ([]byte, error) {
-	key := []byte("a very very very very secret key") // 32 bytes
+	// key := []byte("a very very very very secret key") // 32 bytes
+	key, err := GetAesSecret()
+	if err != nil {
+		return nil, err
+	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
