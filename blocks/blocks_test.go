@@ -36,7 +36,7 @@ func (s *BlockSuite) TestLiteide(c *C) {
 
 	// Block the bigger
 	start := time.Now()
-	err, bibleBlockFile := BlockFile(liteIdeInFile)
+	bibleBlockFile, err := BlockFile(liteIdeInFile)
 	end := time.Now()
 
 	fmt.Printf("Blocked LiteIde took: %v\n", end.Sub(start))
@@ -68,7 +68,7 @@ func (s *BlockSuite) TestKingJamesBible(c *C) {
 
 	// Block the bigger
 	start := time.Now()
-	err, bibleBlockFile := BlockFile(bibleInFile)
+	bibleBlockFile, err := BlockFile(bibleInFile)
 	end := time.Now()
 
 	fmt.Printf("Blocked King James Bible took: %v\n", end.Sub(start))
@@ -104,7 +104,7 @@ func (s *BlockSuite) TestTempest(c *C) {
 
 	// Block the file
 	start := time.Now()
-	err, blockFile := BlockFile(inputFile)
+	blockFile, err := BlockFile(inputFile)
 	end := time.Now()
 
 	fmt.Printf("Blocked Tempest took: %v\n", end.Sub(start))
@@ -189,7 +189,7 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	// Get some info about the file we are going test
 	changedInputFileInfo, _ := os.Stat(changedInputFile)
 
-	err, blockFile := BlockFile(inputFile)
+	blockFile, err := BlockFile(inputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
@@ -197,7 +197,7 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	firstFileHash := blockFile.BlockList[0].Hash
 
 	// Block the file again.
-	err, blockFile = BlockFile(inputFile)
+	blockFile, err = BlockFile(inputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
@@ -209,7 +209,7 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	c.Assert(firstFileHash == blockFile.BlockList[0].Hash, IsTrue)
 
 	// Block the file again.  New version should be created
-	err, blockFile = BlockFile(changedInputFile)
+	blockFile, err = BlockFile(changedInputFile)
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))

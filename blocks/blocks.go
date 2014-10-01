@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"bytes"
 	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/snappy-go/snappy"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"github.com/Inflatablewoman/blocker/hash2"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -25,10 +27,12 @@ type FileBlock struct {
 
 // File is a representation of a blocks together to form a file
 type BlockedFile struct {
-	ID        string      `json:"id"`
-	Length    int64       `json:"length"`
-	Created   time.Time   `json:"time"`
-	BlockList []FileBlock `json:"blocks"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	ContentType string      `json:"contentType"`
+	Length      int64       `json:"length"`
+	Created     time.Time   `json:"time"`
+	BlockList   []FileBlock `json:"blocks"`
 }
 
 // 4Mb block size
@@ -76,16 +80,30 @@ func init() {
 
 // Create a new file.
 // Expects a filename.  Returns any error or the created BlockedFile
-func BlockFile(sourceFilepath string) (error, BlockedFile) {
+func BlockFile(sourceFilepath string) (BlockedFile, error) {
 
 	// open the file and read the contents
 	sourceFile, err := os.Open(sourceFilepath)
 	if err != nil {
-		return err, BlockedFile{}
+		return BlockedFile{}, err
 	}
 	defer sourceFile.Close()
 
-	// Read in blocks of data
+	filename := filepath.Base(sourceFilepath)
+
+	// Get blocked file (function used for testing so always same here)
+	blockedFile, err := BlockBuffer(sourceFile, filename, "plain/text")
+	if err != nil {
+		return BlockedFile{}, err
+	}
+
+	return blockedFile, nil
+}
+
+// Block a source into a file
+func BlockBuffer(source io.Reader, filename string, fileType string) (BlockedFile, error) {
+
+	// Set the BlockSize
 	data := make([]byte, BlockSize)
 
 	fileblocks := make([]FileBlock, 0)
@@ -93,12 +111,12 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 	var blockCount int
 	var fileLength int64
 	// Keep reading blocks of data from the file until we have read less than the BlockSize
-	for count, err := sourceFile.Read(data); err == nil; count, err = sourceFile.Read(data) {
+	for count, err := source.Read(data); err == nil; count, err = source.Read(data) {
 		blockCount++
 		fileLength += int64(count)
 
 		if err != nil && err != io.EOF {
-			return err, BlockedFile{}
+			return BlockedFile{}, err
 		}
 
 		// Calculate the hash of the block
@@ -107,7 +125,7 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 		// Do we already have this block stored?
 		blockExists, err := blockRepository.CheckBlockExists(hash)
 		if err != nil {
-			return err, BlockedFile{}
+			return BlockedFile{}, err
 		}
 
 		if !blockExists {
@@ -118,7 +136,7 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 			if UseCompression {
 				storeData, err = snappy.Encode(nil, storeData)
 				if err != nil {
-					return err, BlockedFile{}
+					return BlockedFile{}, err
 				}
 			}
 
@@ -126,7 +144,7 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 			if UseEncryption {
 				storeData, err = crypto.AesCfbEncrypt(storeData)
 				if err != nil {
-					return err, BlockedFile{}
+					return BlockedFile{}, err
 				}
 			}
 
@@ -143,18 +161,63 @@ func BlockFile(sourceFilepath string) (error, BlockedFile) {
 		fileblocks = append(fileblocks, fileblock)
 	}
 
-	blockedFile := BlockedFile{uuid.New(), fileLength, time.Now(), fileblocks}
+	blockedFile := BlockedFile{uuid.New(), filename, fileType, fileLength, time.Now(), fileblocks}
 
 	blockedFileRepository.SaveBlockedFile(blockedFile)
 
-	return nil, blockedFile
+	return blockedFile, nil
+}
+
+// Unblock a file to a buffer stream
+func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
+
+	// Data to return
+	var buffer bytes.Buffer
+
+	// Get the blocked file from the repository
+	blockedFile, err := blockedFileRepository.GetBlockedFile(blockFileID)
+	if err != nil {
+		return buffer, err
+	}
+
+	for _, fileBlock := range blockedFile.BlockList {
+
+		block, err := blockRepository.GetBlock(fileBlock.Hash)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+			return buffer, err
+		}
+
+		storeData := block.Data
+
+		// Decrypt the data
+		if UseEncryption {
+			storeData, err = crypto.AesCfbDecrypt(storeData)
+			if err != nil {
+				fmt.Println("Error: " + err.Error())
+				return buffer, err
+			}
+		}
+
+		// Uncompress the data
+		if UseCompression {
+			storeData, err = snappy.Decode(nil, storeData)
+			if err != nil {
+				return buffer, err
+			}
+		}
+
+		// Write data to buffer
+		buffer.Write(storeData)
+	}
+
+	return buffer, nil
 }
 
 // Takes a file ID.  Unblocks the files from the underlying system and then writes the file to the target file path
 func UnblockFile(blockFileID string, targetFilePath string) error {
 
-	// Get the blocked file from the repository
-	blockedFile, err := blockedFileRepository.GetBlockedFile(blockFileID)
+	buffer, err := UnblockFileToBuffer(blockFileID)
 	if err != nil {
 		return err
 	}
@@ -164,6 +227,22 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 		return err
 	}
 	defer outFile.Close()
+
+	_, err = buffer.WriteTo(outFile)
+	if err != nil {
+		fmt.Println("Error: " + err.Error())
+		return err
+	}
+
+	return nil
+}
+
+/* // Get the blocked file from the repository
+	blockedFile, err := blockedFileRepository.GetBlockedFile(blockFileID)
+	if err != nil {
+		return err
+	}
+
 
 	var offSet int64 = 0
 	for _, fileBlock := range blockedFile.BlockList {
@@ -210,4 +289,4 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 	}
 
 	return nil
-}
+}*/

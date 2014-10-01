@@ -38,12 +38,21 @@ type RsaChipher struct {
 	PublicKey  *rsa.PublicKey
 }
 
+// The AES key used for AES encryption
+var aesEncryptionKey AesKey
+
+// Structure to hold unencrypted AES key
+type AesKey struct {
+	key []byte
+}
+
 func init() {
-	LoadOrGenerateKey()
+	LoadOrGenerateRsaKey()
+	GetAesSecret()
 }
 
 // Load or Generate a RSA certiciate
-func LoadOrGenerateKey() {
+func LoadOrGenerateRsaKey() {
 
 	// Read key
 	keyBytes, err := ioutil.ReadFile(keyPath)
@@ -60,11 +69,11 @@ func LoadOrGenerateKey() {
 	}
 
 	// No load of existing key.  Generate a new one.
-	GenerateKey()
+	GenerateRsaKey()
 }
 
 // Generate a new key
-func GenerateKey() {
+func GenerateRsaKey() {
 
 	// Generate a 256 bit private key for use with the encryption
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -145,11 +154,12 @@ func GenerateAesSecret() []byte {
 }
 
 // Get the AES secret to be used for encryption
-func GetAesSecret() (aesSecret []byte, err error) {
+func GetAesSecret() (err error) {
 	// Read key
 	keyBytes, err := ioutil.ReadFile(aesKeyPath)
 	if err == nil {
-		return RsaDecrypt(keyBytes)
+		key, _ := RsaDecrypt(keyBytes)
+		aesEncryptionKey = AesKey{key}
 	}
 
 	// Create new Aes Secret
@@ -159,17 +169,19 @@ func GetAesSecret() (aesSecret []byte, err error) {
 	encryptedKey, err := RsaEncrypt(newAesKey)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
-		return nil, err
+		return err
 	}
 
 	// Save encrypted key to disk
 	err = ioutil.WriteFile(aesKeyPath, encryptedKey, 0644)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
-		return nil, err
+		return err
 	}
 
-	return newAesKey, nil
+	aesEncryptionKey = AesKey{newAesKey}
+
+	return nil
 }
 
 // Hex to bytes
@@ -185,12 +197,8 @@ func encodeHex(bytes []byte) string {
 // Encrpyt data using AES with the CFB chipher mode
 func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
 	// key := []byte("a very very very very secret key") // 32 bytes
-	key, err := GetAesSecret()
-	if err != nil {
-		return nil, err
-	}
 
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(aesEncryptionKey.key)
 	if err != nil {
 		return nil, err
 	}
@@ -216,12 +224,8 @@ func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
 // Encrpyt data using AES with the CFB chipher mode
 func AesCfbEncrypt(bytesToEncrypt []byte) ([]byte, error) {
 	// key := []byte("a very very very very secret key") // 32 bytes
-	key, err := GetAesSecret()
-	if err != nil {
-		return nil, err
-	}
 
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(aesEncryptionKey.key)
 	if err != nil {
 		return nil, err
 	}

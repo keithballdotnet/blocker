@@ -92,7 +92,7 @@ func (s *CryptoSuite) TestGenerateKey(c *C) {
 	certifcatePath := filepath.Join(os.TempDir(), "blocks", "cert.pem")
 	keyPath := filepath.Join(os.TempDir(), "blocks", "key.pem")
 
-	GenerateKey()
+	GenerateRsaKey()
 
 	certInfo, err := os.Stat(certifcatePath)
 	c.Assert(err == nil, IsTrue)

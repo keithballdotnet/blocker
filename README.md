@@ -12,10 +12,14 @@ Block Filesystem in go
 - Blocks are compressed using Snappy Compression
 - Files where blocks have not changed reference old blocks
 - A REST interface for downloading blocked documents
+- A REST interface for uploading blocked documents
+- Uses couchbase for BlockedFiles repository
+- Uses local disk for FileBlocks repository
 
 ##TODO
 
-- Add REST inferface to file system
 - Add a way to delete files
+- Document REST API
+- Move encryption from TOY format to be a bit more secure
 
 
