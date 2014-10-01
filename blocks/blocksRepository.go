@@ -1,7 +1,6 @@
 package blocks
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/couchbaselabs/go-couchbase"
@@ -13,7 +12,8 @@ import (
 
 // BlockRepository : Saves blocks to disk
 type BlockRepository struct {
-	path string
+	path      string
+	extension string
 }
 
 // NewBlockRepository
@@ -26,18 +26,18 @@ func NewBlockRepository() (BlockRepository, error) {
 		panic("Unable to create directory: " + err.Error())
 	}
 
-	return BlockRepository{depositoryDir}, nil
+	return BlockRepository{depositoryDir, ".blk"}, nil
 }
 
 // Save persists a block into the repository
-func (r BlockRepository) SaveBlock(block Block) error {
-	bytes, err := json.Marshal(block)
+func (r BlockRepository) SaveBlock(bytes []byte, hash string) error {
+	/*bytes, err := json.Marshal(block)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error marshalling file : %v", err))
 		return err
-	}
+	}*/
 
-	err = ioutil.WriteFile(filepath.Join(r.path, block.Hash+".json"), bytes, 0644)
+	err := ioutil.WriteFile(filepath.Join(r.path, hash+r.extension), bytes, 0644)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
 		return err
@@ -47,23 +47,22 @@ func (r BlockRepository) SaveBlock(block Block) error {
 }
 
 // Get a block from the repository
-func (r BlockRepository) GetBlock(blockHash string) (*Block, error) {
-	var block Block
+func (r BlockRepository) GetBlock(blockHash string) ([]byte, error) {
 
-	readBytes, err := ioutil.ReadFile(filepath.Join(r.path, blockHash+".json"))
+	readBytes, err := ioutil.ReadFile(filepath.Join(r.path, blockHash+r.extension))
 	if err != nil {
 		log.Println(fmt.Sprintf("Error reading block : %v", err))
 		return nil, err
 	}
 
-	json.Unmarshal(readBytes, &block)
+	// json.Unmarshal(readBytes, &block)
 
-	return &block, nil
+	return readBytes, nil
 }
 
 // Check to see if a block exists
 func (r BlockRepository) CheckBlockExists(blockHash string) (bool, error) {
-	_, err := os.Stat(r.path + blockHash + ".json")
+	_, err := os.Stat(filepath.Join(r.path, blockHash+r.extension))
 	if err == nil {
 		return true, nil
 	}

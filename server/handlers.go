@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 func GetHello(u *url.URL, h http.Header, _ interface{}) (int, http.Header, string, error) {
@@ -47,19 +50,46 @@ func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *ht
 		HandleErrorWithResponse(w, err)
 		return
 	}
-
-	defer file.Close()
+	defer checkClose(file, &err)
 
 	fileName := header.Filename
 	// TODO: Get content type
 	contentType := "text/plain" //header.Header["Content-Type"][0]
 
-	BlockAndRespond(w, fileName, contentType, file)
+	BlockAndRespond(w, fileName, contentType, r.Body)
 }
 
 // Handle the uploaded data.
 func BlockAndRespond(w http.ResponseWriter, filename string, contentType string, content io.Reader) {
-	blockedFile, err := blocks.BlockBuffer(content, filename, contentType)
+
+	// Temp file name
+	tempfile := filepath.Join(os.TempDir(), string(time.Now().UnixNano())+".tmp")
+
+	// Create temp file
+	outFile, err := os.OpenFile(tempfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Println("Error serializing to josn: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Save content to file
+	io.Copy(outFile, content)
+
+	// Close the file so it can be read
+	outFile.Close()
+
+	// open the file and read the contents
+	sourceFile, err := os.Open(tempfile)
+	if err != nil {
+		log.Println("Error serializing to josn: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer sourceFile.Close()
+	defer os.Remove(tempfile)
+
+	blockedFile, err := blocks.BlockBuffer(sourceFile, filename, contentType)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header()["Content-Type"] = []string{"application/json"}
@@ -102,6 +132,15 @@ func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	//response, err := ioutil.ReadFile(outFile)
 	//w.Write(response)
+}
+
+// checkClose is used to check the return from Close in a defer
+// statement.
+func checkClose(c io.Closer, err *error) {
+	cerr := c.Close()
+	if *err == nil {
+		*err = cerr
+	}
 }
 
 func HandleErrorWithResponse(w http.ResponseWriter, error error) {

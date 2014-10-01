@@ -13,12 +13,6 @@ import (
 	"time"
 )
 
-// Block is that basic element of data that is to be stored in the database
-type Block struct {
-	Hash string `json:"hash"`
-	Data []byte `json:"data"`
-}
-
 // This is a form used to link the File to the Block without needing to load the full data from the database
 type FileBlock struct {
 	BlockPosition int    `json:"position"`
@@ -110,6 +104,7 @@ func BlockBuffer(source io.Reader, filename string, fileType string) (BlockedFil
 
 	var blockCount int
 	var fileLength int64
+
 	// Keep reading blocks of data from the file until we have read less than the BlockSize
 	for count, err := source.Read(data); err == nil; count, err = source.Read(data) {
 		blockCount++
@@ -128,8 +123,9 @@ func BlockBuffer(source io.Reader, filename string, fileType string) (BlockedFil
 			return BlockedFile{}, err
 		}
 
-		if !blockExists {
+		fmt.Printf("count: %d\n", count)
 
+		if !blockExists {
 			storeData := data[:count]
 
 			// Compress the data
@@ -148,11 +144,8 @@ func BlockBuffer(source io.Reader, filename string, fileType string) (BlockedFil
 				}
 			}
 
-			// Create our file structure
-			block := Block{hash, storeData}
-
 			// Commit block to repository
-			blockRepository.SaveBlock(block)
+			blockRepository.SaveBlock(storeData, hash)
 		}
 
 		fileblock := FileBlock{blockCount, hash}
@@ -182,13 +175,13 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 
 	for _, fileBlock := range blockedFile.BlockList {
 
-		block, err := blockRepository.GetBlock(fileBlock.Hash)
+		bytes, err := blockRepository.GetBlock(fileBlock.Hash)
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 			return buffer, err
 		}
 
-		storeData := block.Data
+		storeData := bytes
 
 		// Decrypt the data
 		if UseEncryption {

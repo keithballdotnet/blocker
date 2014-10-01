@@ -160,6 +160,7 @@ func GetAesSecret() (err error) {
 	if err == nil {
 		key, _ := RsaDecrypt(keyBytes)
 		aesEncryptionKey = AesKey{key}
+		return
 	}
 
 	// Create new Aes Secret
