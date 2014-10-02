@@ -1,6 +1,6 @@
-Blocker - A block based filesystem microservice in go
+Blocker 
 =======
-
+A block based filesystem microservice written in go
 [![GoDoc](https://godoc.org/github.com/Inflatablewoman/blocker?status.svg)](https://godoc.org/github.com/Inflatablewoman/blocker)
 [![Build Status](https://drone.io/github.com/Inflatablewoman/blocker/status.png)](https://drone.io/github.com/Inflatablewoman/blocker/latest)
 
