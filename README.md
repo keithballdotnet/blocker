@@ -1,4 +1,4 @@
-Block Filesystem in go
+Blocker - A block based filesystem microservice in go
 =======
 
 [![GoDoc](https://godoc.org/github.com/Inflatablewoman/blocker?status.svg)](https://godoc.org/github.com/Inflatablewoman/blocker)
@@ -33,10 +33,9 @@ PUT        | /api/blocker   | Uploads a file and returns a newly created Blocked
 ##TODO
 
 - Add a way to delete files
-- Document REST API
 - Move encryption from TOY format to be a bit more secure
 - Permissions
 - Authentication
-- Stream content from server
+- Stream content to disk rather than save to temp location
 
 
