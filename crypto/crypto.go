@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	// "crypto/x509/pkix"
+	"crypto/x509/pkix"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
@@ -14,14 +14,14 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	// "math/big"
+	"math/big"
 	"os"
 	"path/filepath"
-	// "time"
+	"time"
 )
 
 // Path to the certificate
-// var certifcatePath = filepath.Join(os.TempDir(), "blocks", "cert.pem")
+var certifcatePath = filepath.Join(os.TempDir(), "blocks", "cert.pem")
 
 // Path to the private key
 var keyPath = filepath.Join(os.TempDir(), "blocks", "key.pem")
@@ -82,7 +82,7 @@ func GenerateRsaKey() {
 		return
 	}
 
-	/*now := time.Now()
+	now := time.Now()
 
 	template := x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(0),
@@ -110,7 +110,7 @@ func GenerateRsaKey() {
 	}
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	certOut.Close()
-	log.Print("written cert.pem\n")*/
+	log.Print("written cert.pem\n")
 
 	depositoryDir := filepath.Join(os.TempDir(), "blocks")
 
