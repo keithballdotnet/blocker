@@ -89,7 +89,7 @@ func BlockAndRespond(w http.ResponseWriter, filename string, contentType string,
 	defer sourceFile.Close()
 	defer os.Remove(tempfile)
 
-	blockedFile, err := blocks.BlockBuffer(sourceFile, filename, contentType)
+	blockedFile, err := blocks.BlockBuffer(sourceFile, contentType)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header()["Content-Type"] = []string{"application/json"}
@@ -114,6 +114,7 @@ func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	fmt.Println("Got GET file request")
 
 	itemID := r.URL.Query().Get("itemID")
+	fileName := r.URL.Query().Get("fileName")
 
 	// fmt.Fprintf(w, "Going to get \"%v\"\n", itemID)
 
@@ -126,7 +127,7 @@ func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	header := w.Header()
 	header["Content-Type"] = []string{"text/plain"}
-	//header["Content-Disposition"] = []string{"attachment;filename=" + "document.txt"}
+	header["Content-Disposition"] = []string{"attachment;filename=" + fileName}
 
 	buffer.WriteTo(w)
 

@@ -23,7 +23,7 @@ The REST API interface can be used to perform operations against the Filesystem.
 HTTP Method | URI path | Description
 ------------|----------|------------
 GET         | /api/blocker  | Retreives a hello.
-GET         | /api/blocker/{itemID}  | Retreives a BlockedFile based on the passed ID
+GET         | /api/blocker/{itemID}/{fileName}  | Retreives a BlockedFile based on the passed ID
 POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFiles
 PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFiles
 

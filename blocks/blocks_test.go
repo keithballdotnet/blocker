@@ -30,7 +30,7 @@ const liteIdeoutFile = "liteidex23.2.linux-32.tar.bz2"
 
 func (s *BlockSuite) TestLiteide(c *C) {
 
-	c.Skip("Want to work out what is going on")
+	//c.Skip("Want to work out what is going on")
 
 	/*BlockSize = BlockSize4Mb
 	UseCompression = true
@@ -64,7 +64,7 @@ func (s *BlockSuite) TestLiteide(c *C) {
 
 func (s *BlockSuite) TestKingJamesBible(c *C) {
 
-	c.Skip("Want to work out what is going on")
+	//c.Skip("Want to work out what is going on")
 
 	/*BlockSize = BlockSize4Mb
 	UseCompression = true
