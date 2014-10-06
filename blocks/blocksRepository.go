@@ -3,7 +3,7 @@ package blocks
 import (
 	"errors"
 	"fmt"
-	"github.com/couchbaselabs/go-couchbase"
+	"github.com/Inflatablewoman/go-couchbase"
 	"io/ioutil"
 	"log"
 	"os"
