@@ -34,21 +34,21 @@ coreos:
 
         [Install]
         WantedBy=sockets.target
-	- name: docker-tcp.socket
-      command: start
-      enable: true
-      content: |
-		[Unit]
-		Description=MyApp
-		After=docker.service
-		Requires=docker.service
+     - name: blocker.service
+       command: start
+       enable: true
+       content: |
+	     [Unit]
+		 Description=MyApp
+		 After=docker.service
+		 Requires=docker.service
 
-		[Service]
-		TimeoutStartSec=0
-		ExecStartPre=-/usr/bin/docker kill blocker1
-		ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
-		ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -rm inflatablewoman/blocker
-		ExecStop=/usr/bin/docker stop blocker1
+		 [Service]
+		 TimeoutStartSec=0
+		 ExecStartPre=-/usr/bin/docker kill blocker1
+		 ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
+		 ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -rm inflatablewoman/blocker
+		 ExecStop=/usr/bin/docker stop blocker1
 		
 	  update:
 		group: alpha
