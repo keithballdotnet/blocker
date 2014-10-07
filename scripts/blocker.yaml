@@ -3,6 +3,9 @@
 # Validate YAML: http://yamllint.com/
 # Install command: coreos-install -C stable -c simple.txt -d /dev/sda
 
+users:
+  - name: core
+    passwd: $1$XMZXIbkN$WKmZMCgi5pQWXb7jSywjp1
 coreos: 
   etcd: 
     addr: "$public_ipv4:4001"
