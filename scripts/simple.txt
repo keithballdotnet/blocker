@@ -1,57 +1,59 @@
 #cloud-config
+#https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/
+#validate: http://yamllint.com/
 
-coreos:
-  etcd:
-      # generate a new token for each unique cluster from https://discovery.etcd.io/new
-      # WARNING: replace each time you 'vagrant destroy'
-      #discovery: https://discovery.etcd.io/<token>
-      addr: $public_ipv4:4001
-      peer-addr: $public_ipv4:7001
-  units:
-    - name: etcd.service
+coreos: 
+  etcd: 
+    addr: "$public_ipv4:4001"
+    peer-addr: "$public_ipv4:7001"
+  units: 
+    - 
       command: start
-    - name: fleet.service
+      name: etcd.service
+    - 
       command: start
-      runtime: no
       content: |
-        [Unit]
-        Description=fleet
-
-        [Service]
-        Environment=FLEET_PUBLIC_IP=$public_ipv4
-        ExecStart=/usr/bin/fleet
-    - name: docker-tcp.socket
+          [Unit]
+          Description=fleet
+          
+          [Service]
+          Environment=FLEET_PUBLIC_IP=$public_ipv4
+          ExecStart=/usr/bin/fleet
+      name: fleet.service
+      runtime: false
+    - 
       command: start
+      content: |
+          [Unit]
+          Description=Docker Socket for the API
+          
+          [Socket]
+          ListenStream=2375
+          Service=docker.service
+          BindIPv6Only=both
+          
+          [Install]
+          WantedBy=sockets.target
       enable: true
+      name: docker-tcp.socket
+    - 
+      command: start
       content: |
-        [Unit]
-        Description=Docker Socket for the API
-
-        [Socket]
-        ListenStream=2375
-        Service=docker.service
-        BindIPv6Only=both
-
-        [Install]
-        WantedBy=sockets.target
-     - name: blocker.service
-       command: start
-       enable: true
-       content: |
-         [Unit]
-         Description=MyApp
-	 After=docker.service
-	 Requires=docker.service
-
-	 [Service]
-         TimeoutStartSec=0
-         ExecStartPre=-/usr/bin/docker kill blocker1
-         ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
-         ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -rm inflatablewoman/blocker
-         ExecStop=/usr/bin/docker stop blocker1
-		
-    update:
-	group: satable
-    	reboot-strategy: off
-
-ssh_authorized_keys: - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQ+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
+          [Unit]
+          Description=blocker
+          After=docker.service
+          Requires=docker.service
+          
+          [Service]
+          TimeoutStartSec=0
+          ExecStartPre=-/usr/bin/docker kill blocker1
+          ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
+          ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -rm inflatablewoman/blocker
+          ExecStop=/usr/bin/docker stop blocker1
+      enable: true
+      name: blocker
+  update: 
+    group: stable
+    reboot-strategy: false
+ssh_authorized_keys: 
+  - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQ+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
