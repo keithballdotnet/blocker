@@ -8,17 +8,19 @@ users:
     passwd: $1$XMZXIbkN$WKmZMCgi5pQWXb7jSywjp1
 ssh_authorized_keys: 
   - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQ+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
+hostname:
+ 
 coreos: 
   etcd:
     # generate a new token for each unique cluster from https://discovery.etcd.io/new
-    discovery: https://discovery.etcd.io/fe7d7d5ba73754a9170f121f580bf3fc
+    discovery: https://discovery.etcd.io/faefe9f503ff610df65baefa13d0839d
     # WARNING: replace each time you 'vagrant destroy'
     addr: $public_ipv4:4001
     peer-addr: $public_ipv4:7001
   units: 
     - 
-      command: start
       name: etcd.service
+      command: start
     - 
       command: start
       content: |
@@ -31,6 +33,7 @@ coreos:
       name: fleet.service
       runtime: false
     - 
+      name: docker-tcp.socket
       command: start
       content: |
           [Unit]
@@ -44,9 +47,9 @@ coreos:
           [Install]
           WantedBy=sockets.target
       enable: true
-      name: docker-tcp.socket
     - 
-      command: start
+	name: blocker.application
+	command: start
       content: |
           [Unit]
           Description=blocker
@@ -55,13 +58,18 @@ coreos:
           
           [Service]
           TimeoutStartSec=10m
+          ExecStartPre=-/usr/bin/docker kill blocker1
+          ExecStartPre=-/usr/bin/docker rm blocker1
           ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
           ExecStart=/usr/bin/docker run \ 
           --publish 6045:8002 \
           --name blocker1 \
           ExecStop=/usr/bin/docker stop blocker1
+		
+          [Install]
+          WantedBy=multi-user.target
       enable: true
-      name: blocker.application
+      
   update: 
     group: stable
     reboot-strategy: false
