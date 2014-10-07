@@ -1,3 +1,8 @@
+# The following commands can be used to create, run and publish a docker image
+# Command Used to build image : docker build -t inflatablewoman/blocker .
+# Command Used to run image : docker run --publish 6060:8002 --name blocker1 --rm inflatablewoman/blocker
+# Command Used to publish image : docker push inflatablewoman/blocker
+
 # Start from a Debian image with the latest version of Go installed
 # and a workspace (GOPATH) configured at /go.
 FROM golang
