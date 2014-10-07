@@ -7,7 +7,7 @@ users:
   - name: core
     passwd: $1$XMZXIbkN$WKmZMCgi5pQWXb7jSywjp1
 coreos: 
-  etcd: 
+  etcd:
     addr: "$public_ipv4:4001"
     peer-addr: "$public_ipv4:7001"
   units: 
@@ -49,16 +49,14 @@ coreos:
           Requires=docker.service
           
           [Service]
-          TimeoutStartSec=0
-          ExecStartPre=-/usr/bin/docker kill blocker1
+          TimeoutStartSec=10m
           ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
           ExecStart=/usr/bin/docker run \ 
           --publish 6045:8002 \
           --name blocker1 \
-          --rm inflatablewoman/blocker
           ExecStop=/usr/bin/docker stop blocker1
       enable: true
-      name: blocker
+      name: blocker.application
   update: 
     group: stable
     reboot-strategy: false
