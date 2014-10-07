@@ -1,6 +1,7 @@
 #cloud-config
-#https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/
-#validate: http://yamllint.com/
+# More info - https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/
+# Validate YAML: http://yamllint.com/
+# Install command: coreos-install -C stable -c simple.txt -d /dev/sda
 
 coreos: 
   etcd: 
@@ -51,9 +52,9 @@ coreos:
           ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -rm inflatablewoman/blocker
           ExecStop=/usr/bin/docker stop blocker1
       enable: true
-      name: blocker
+      name: blocker.service
   update: 
     group: stable
     reboot-strategy: false
 ssh_authorized_keys: 
-  - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQ+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
+  - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQH+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
