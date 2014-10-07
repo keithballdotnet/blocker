@@ -8,8 +8,7 @@ users:
     passwd: $1$XMZXIbkN$WKmZMCgi5pQWXb7jSywjp1
 ssh_authorized_keys: 
   - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQ+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
-hostname:
- 
+hostname: coreos1
 coreos: 
   etcd:
     # generate a new token for each unique cluster from https://discovery.etcd.io/new
