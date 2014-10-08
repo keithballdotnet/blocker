@@ -19,7 +19,7 @@ type BlockRepository struct {
 // NewBlockRepository
 func NewBlockRepository() (BlockRepository, error) {
 
-	depositoryDir := filepath.Join(os.TempDir(), "blocks")
+	depositoryDir := filepath.Join(os.TempDir(), "blocker")
 
 	err := os.Mkdir(depositoryDir, 0777)
 	if err != nil && !os.IsExist(err) {

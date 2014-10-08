@@ -21,21 +21,23 @@ import (
 )
 
 // Path to the certificate
-var certifcatePath = filepath.Join(os.TempDir(), "blocks", "cert.pem")
+var CertifcatePath = filepath.Join(os.TempDir(), "blocker", "cert.pem")
 
 // Path to the private key
-var keyPath = filepath.Join(os.TempDir(), "blocks", "key.pem")
+var KeyPath = filepath.Join(os.TempDir(), "blocker", "key.pem")
 
 // Path to the encrypted aes key
-var aesKeyPath = filepath.Join(os.TempDir(), "blocks", "aes.key")
+var aesKeyPath = filepath.Join(os.TempDir(), "blocker", "aes.key")
 
 // The key to be used to encrypt and decrypt when using RSA encryption
-var rsaEncryptionChipher RsaChipher
+var RsaEncryptionChipher RsaChipher
 
 // Structure for encryption chipher
 type RsaChipher struct {
-	PrivateKey *rsa.PrivateKey
-	PublicKey  *rsa.PublicKey
+	PrivateKey     *rsa.PrivateKey
+	PrivateKeyPath string
+	PublicKey      *rsa.PublicKey
+	PublicKeyPath  string
 }
 
 // The AES key used for AES encryption
@@ -55,14 +57,14 @@ func init() {
 func LoadOrGenerateRsaKey() {
 
 	// Read key
-	keyBytes, err := ioutil.ReadFile(keyPath)
+	keyBytes, err := ioutil.ReadFile(KeyPath)
 	if err == nil {
 		// Get private key
 		block, _ := pem.Decode(keyBytes)
 		privatekey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
 
 		// Set object
-		rsaEncryptionChipher = RsaChipher{privatekey, &privatekey.PublicKey}
+		RsaEncryptionChipher = RsaChipher{privatekey, KeyPath, &privatekey.PublicKey, CertifcatePath}
 
 		// We are done
 		return
@@ -74,6 +76,13 @@ func LoadOrGenerateRsaKey() {
 
 // Generate a new key
 func GenerateRsaKey() {
+
+	depositoryDir := filepath.Join(os.TempDir(), "blocker")
+
+	err := os.Mkdir(depositoryDir, 0777)
+	if err != nil && !os.IsExist(err) {
+		panic("Unable to create directory: " + err.Error())
+	}
 
 	// Generate a 256 bit private key for use with the encryption
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -103,7 +112,7 @@ func GenerateRsaKey() {
 		return
 	}
 
-	certOut, err := os.Create(certifcatePath)
+	certOut, err := os.Create(CertifcatePath)
 	if err != nil {
 		log.Fatalf("failed to open cert.pem for writing: %s", err)
 		return
@@ -112,14 +121,7 @@ func GenerateRsaKey() {
 	certOut.Close()
 	log.Print("written cert.pem\n")
 
-	depositoryDir := filepath.Join(os.TempDir(), "blocks")
-
-	err = os.Mkdir(depositoryDir, 0777)
-	if err != nil && !os.IsExist(err) {
-		panic("Unable to create directory: " + err.Error())
-	}
-
-	keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	keyOut, err := os.OpenFile(KeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Print("failed to open key.pem for writing:", err)
 		return
@@ -133,17 +135,17 @@ func GenerateRsaKey() {
 	log.Print("Wrote Certificate to disk.")
 
 	// Now set object
-	rsaEncryptionChipher = RsaChipher{priv, &priv.PublicKey}
+	RsaEncryptionChipher = RsaChipher{priv, KeyPath, &priv.PublicKey, CertifcatePath}
 }
 
 // Encrypt data using RSA and a public key
 func RsaEncrypt(bytesToEncrypt []byte) ([]byte, error) {
-	return rsa.EncryptPKCS1v15(rand.Reader, rsaEncryptionChipher.PublicKey, bytesToEncrypt)
+	return rsa.EncryptPKCS1v15(rand.Reader, RsaEncryptionChipher.PublicKey, bytesToEncrypt)
 }
 
 // Decrypt data using RSA and a private key
 func RsaDecrypt(encryptedBytes []byte) ([]byte, error) {
-	return rsa.DecryptPKCS1v15(rand.Reader, rsaEncryptionChipher.PrivateKey, encryptedBytes)
+	return rsa.DecryptPKCS1v15(rand.Reader, RsaEncryptionChipher.PrivateKey, encryptedBytes)
 }
 
 // Create a new Aes Secret

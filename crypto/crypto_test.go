@@ -6,7 +6,7 @@ import (
 	. "github.com/Inflatablewoman/blocker/gocheck2"
 	. "gopkg.in/check.v1"
 	"os"
-	"path/filepath"
+	// "path/filepath"
 	"testing"
 )
 
@@ -89,16 +89,16 @@ func (s *CryptoSuite) TestGenerateKey(c *C) {
 
 	c.Skip("Not interesting")
 
-	certifcatePath := filepath.Join(os.TempDir(), "blocks", "cert.pem")
-	keyPath := filepath.Join(os.TempDir(), "blocks", "key.pem")
-
 	GenerateRsaKey()
 
-	certInfo, err := os.Stat(certifcatePath)
+	c.Assert(RsaEncryptionChipher.PublicKeyPath == CertifcatePath, IsTrue)
+	c.Assert(RsaEncryptionChipher.PrivateKeyPath == KeyPath, IsTrue)
+
+	certInfo, err := os.Stat(CertifcatePath)
 	c.Assert(err == nil, IsTrue)
 	c.Assert(certInfo.Size() > 0, IsTrue)
 
-	keyInfo, err := os.Stat(keyPath)
+	keyInfo, err := os.Stat(KeyPath)
 	c.Assert(err == nil, IsTrue)
 	c.Assert(keyInfo.Size() > 0, IsTrue)
 }

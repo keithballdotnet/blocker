@@ -28,10 +28,12 @@ func NewRawUploadHandler() RawUploadHandler {
 }
 
 func (handler RawUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	contentType := r.Header["Content-Type"][0]
-	fileName := r.Header["Filename"][0]
+	fmt.Println("Got PUT upload request")
 
-	BlockAndRespond(w, fileName, contentType, r.Body)
+	contentType := r.Header["Content-Type"][0]
+	// fileName := r.Header["Filename"][0]
+
+	BlockAndRespond(w, contentType, r.Body)
 }
 
 type PostMultipartUploadHandler struct{}
@@ -43,7 +45,7 @@ func NewPostMultipartUploadHandler() PostMultipartUploadHandler {
 func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got POST upload request")
 
-	file, header, err := r.FormFile("file") // the FormFile function takes in the POST input
+	file, _, err := r.FormFile("file") // the FormFile function takes in the POST input
 
 	if err != nil {
 		log.Println("Error reading input file: ", err)
@@ -52,15 +54,15 @@ func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *ht
 	}
 	defer checkClose(file, &err)
 
-	fileName := header.Filename
+	// fileName := header.Filename
 	// TODO: Get content type
 	contentType := "text/plain" //header.Header["Content-Type"][0]
 
-	BlockAndRespond(w, fileName, contentType, r.Body)
+	BlockAndRespond(w, contentType, r.Body)
 }
 
 // Handle the uploaded data.
-func BlockAndRespond(w http.ResponseWriter, filename string, contentType string, content io.Reader) {
+func BlockAndRespond(w http.ResponseWriter, contentType string, content io.Reader) {
 
 	// Temp file name
 	tempfile := filepath.Join(os.TempDir(), string(time.Now().UnixNano())+".tmp")

@@ -1,11 +1,9 @@
 package server
 
 import (
-	//"fmt"
+	// "fmt"
+	//"github.com/Inflatablewoman/blocker/crypto"
 	"github.com/rcrowley/go-tigertonic"
-	//"net/http"
-	//"os"
-	//"path/filepath"
 )
 
 // Start a HTTP listener
@@ -16,11 +14,7 @@ func Start() {
 	mux.Handle("POST", "/api/blocker", tigertonic.Timed(NewPostMultipartUploadHandler(), "PostMultipartUploadHandler", nil))
 	mux.Handle("PUT", "/api/blocker", tigertonic.Timed(NewRawUploadHandler(), "RawUploadHandler", nil))
 	tigertonic.NewServer(":8002", mux).ListenAndServe()
-	// Path to the certificate
-	/*var certifcatePath = filepath.Join(os.TempDir(), "blocks", "cert.pem")
 
-	// Path to the private key
-	var keyPath = filepath.Join(os.TempDir(), "blocks", "key.pem")
-
-	tigertonic.NewServer(":8002", mux).ListenAndServeTLS(certifcatePath, keyPath)*/
+	// Inititin the keypath will be enough to create the certificates if needed
+	//tigertonic.NewServer(":8002", mux).ListenAndServeTLS(crypto.RsaEncryptionChipher.PrivateKeyPath, crypto.RsaEncryptionChipher.PublicKeyPath)
 }
