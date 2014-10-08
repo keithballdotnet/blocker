@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"github.com/Inflatablewoman/blocker/blocks"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
-	"time"
 )
 
 func GetHello(u *url.URL, h http.Header, _ interface{}) (int, http.Header, string, error) {
-	fmt.Println("Got GET hello request")
+	log.Println("Got GET hello request")
 
 	// Really simple hello
 	return http.StatusOK, nil, "hello", nil
@@ -28,7 +27,7 @@ func NewRawUploadHandler() RawUploadHandler {
 }
 
 func (handler RawUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Got PUT upload request")
+	log.Println("Got PUT upload request")
 
 	contentType := r.Header["Content-Type"][0]
 	// fileName := r.Header["Filename"][0]
@@ -43,7 +42,7 @@ func NewPostMultipartUploadHandler() PostMultipartUploadHandler {
 }
 
 func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Got POST upload request")
+	log.Println("Got POST upload request")
 
 	file, _, err := r.FormFile("file") // the FormFile function takes in the POST input
 
@@ -64,13 +63,10 @@ func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *ht
 // Handle the uploaded data.
 func BlockAndRespond(w http.ResponseWriter, contentType string, content io.Reader) {
 
-	// Temp file name
-	tempfile := filepath.Join(os.TempDir(), string(time.Now().UnixNano())+".tmp")
-
 	// Create temp file
-	outFile, err := os.OpenFile(tempfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	outFile, err := ioutil.TempFile(os.TempDir(), "upload_")
 	if err != nil {
-		log.Println("Error serializing to josn: ", err)
+		log.Println("Error serializing to json: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -81,15 +77,24 @@ func BlockAndRespond(w http.ResponseWriter, contentType string, content io.Reade
 	// Close the file so it can be read
 	outFile.Close()
 
-	// open the file and read the contents
-	sourceFile, err := os.Open(tempfile)
+	// Get some info about the file we are going test
+	outputFileInfo, err := os.Stat(outFile.Name())
 	if err != nil {
-		log.Println("Error serializing to josn: ", err)
+		log.Println("Error getting file info: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	log.Printf("File upload saved to \"%s\" was %v bytes", outputFileInfo.Name(), outputFileInfo.Size())
+
+	// open the file and read the contents
+	sourceFile, err := os.Open(outFile.Name())
+	if err != nil {
+		log.Println("Error serializing to json: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer sourceFile.Close()
-	defer os.Remove(tempfile)
+	defer os.Remove(outFile.Name())
 
 	blockedFile, err := blocks.BlockBuffer(sourceFile, contentType)
 
@@ -113,7 +118,7 @@ func NewFileDownloadHandler() FileDownloadHandler {
 }
 
 func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Got GET file request")
+	log.Println("Got GET file request")
 
 	itemID := r.URL.Query().Get("itemID")
 	fileName := r.URL.Query().Get("fileName")

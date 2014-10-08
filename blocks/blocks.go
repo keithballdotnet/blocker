@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/snappy-go/snappy"
-	"fmt"
 	"github.com/Inflatablewoman/blocker/crypto"
 	"github.com/Inflatablewoman/blocker/hash2"
 	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -181,7 +181,7 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 
 		bytes, err := blockRepository.GetBlock(fileBlock.Hash)
 		if err != nil {
-			fmt.Println("Error: " + err.Error())
+			log.Println("Error: " + err.Error())
 			return buffer, err
 		}
 
@@ -191,7 +191,7 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 		if UseEncryption {
 			storeData, err = crypto.AesCfbDecrypt(storeData)
 			if err != nil {
-				fmt.Println("Error: " + err.Error())
+				log.Println("Error: " + err.Error())
 				return buffer, err
 			}
 		}
@@ -227,7 +227,7 @@ func UnblockFile(blockFileID string, targetFilePath string) error {
 
 	_, err = buffer.WriteTo(outFile)
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		log.Println("Error: " + err.Error())
 		return err
 	}
 

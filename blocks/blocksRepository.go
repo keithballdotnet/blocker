@@ -26,6 +26,8 @@ func NewBlockRepository() (BlockRepository, error) {
 		panic("Unable to create directory: " + err.Error())
 	}
 
+	log.Println("Storing blocks to: ", depositoryDir)
+
 	return BlockRepository{depositoryDir, ".blk"}, nil
 }
 
