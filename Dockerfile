@@ -1,7 +1,9 @@
 # The following commands can be used to create, run and publish a docker image
+# Ensure boot2Docker is running :  boot2docker up
+# Command Used to locate docker in shell : export DOCKER_HOST=tcp://BLAH BLAH 
 # Command Used to build image : docker build -t inflatablewoman/blocker .
-# Command Used to run image : docker run --publish 6060:8002 --name blocker1 --rm inflatablewoman/blocker
 # Command Used to publish image : docker push inflatablewoman/blocker
+# Command Used to run image : docker run --publish 6060:8002 --name blocker1 --rm inflatablewoman/blocker
 
 # Start from a Debian image with the latest version of Go installed
 # and a workspace (GOPATH) configured at /go.
@@ -16,12 +18,11 @@ ADD . /go/src/github.com/Inflatablewoman/blocker
 # either manually or with a tool like "godep".)
 RUN go get "code.google.com/p/go-uuid/uuid"
 RUN go get "code.google.com/p/snappy-go/snappy"
-RUN go get "github.com/Inflatablewoman/go-couchbase"
+RUN go get "github.com/couchbaselabs/go-couchbase"
 RUN go get "github.com/rcrowley/go-tigertonic"
 RUN go get "gopkg.in/check.v1"
 RUN go install github.com/Inflatablewoman/blocker
 RUN mkdir /tmp/blocks/
-RUN go test -v github.com/Inflatablewoman/blocker/crypto
 
 # Run the blocker command by default when the container starts.
 ENTRYPOINT /go/bin/blocker
