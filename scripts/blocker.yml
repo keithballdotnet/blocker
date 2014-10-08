@@ -1,7 +1,7 @@
 #cloud-config
 # More info - https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/
 # Validate YAML: http://yamllint.com/
-# Install command: coreos-install -C stable -c simple.txt -d /dev/sda
+# Install command: coreos-install -C stable -c blocker.yml -d /dev/sda
 
 users:
   - name: core
@@ -54,8 +54,7 @@ coreos:
         TimeoutStartSec=10m
         ExecStartPre=-/usr/bin/docker kill blocker1
         ExecStartPre=-/usr/bin/docker rm blocker1
-        ExecStartPre=-/usr/bin/mkdir /tmp/blocks
-        ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -v /tmp:/tmp inflatablewoman/blocker 
+        ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -v /tmp:/tmp inflatablewoman/blocker
         RemainAfterExit=yes
   update: 
     group: alpha
