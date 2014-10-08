@@ -1,7 +1,7 @@
 #cloud-config
 # More info - https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/
 # Validate YAML: http://yamllint.com/
-# Install command: coreos-install -C stable -c simple.txt -d /dev/sda
+# Install command: coreos-install -C stable -c blocker.yml -d /dev/sda
 
 users:
   - name: core
@@ -11,64 +11,52 @@ coreos:
     # generate a new token for each unique cluster from https://discovery.etcd.io/new
     # discovery: https://discovery.etcd.io/fe7d7d5ba73754a9170f121f580bf3fc
     # WARNING: replace each time you 'vagrant destroy'
-    addr: $public_ipv4:4001
-    peer-addr: $public_ipv4:7001
-  units: 
-    - 
+    addr: 172.20.10.143:4001
+    peer-addr: 172.20.10.143:7001
+  units:
+    - name: etcd.service
       command: start
-      name: etcd.service
-    - 
+    - name: fleet.service
       command: start
+      runtime: no
       content: |
-          [Unit]
-          Description=fleet
-          
-          [Service]
-          Environment=FLEET_PUBLIC_IP=$public_ipv4
-          ExecStart=/usr/bin/fleet
-      name: fleet.service
-      runtime: false
-    - 
-      command: start
-      content: |
-          [Unit]
-          Description=Docker Socket for the API
-          
-          [Socket]
-          ListenStream=2375
-          Service=docker.service
-          BindIPv6Only=both
-          
-          [Install]
-          WantedBy=sockets.target
-      enable: true
-      name: docker-tcp.socket
-    - 
-      command: start
-      content: |
-          [Unit]
-          Description=blocker
-          After=docker.service
-          Requires=docker.service
-          
-          [Service]
-          TimeoutStartSec=10m
-          ExecStartPre=-/usr/bin/docker kill blocker1
-          ExecStartPre=-/usr/bin/docker rm blocker1
-          ExecStartPre=/usr/bin/docker pull inflatablewoman/blocker
-          ExecStart=/usr/bin/docker run \ 
-          --publish 6045:8002 \
-          --name blocker1 \
-          inflatablewoman/blocker 
-          ExecStop=/usr/bin/docker stop blocker1
+        [Unit]
+        Description=fleet
 
-          [Install]
-          WantedBy=multi-user.target
+        [Service]
+        Environment=FLEET_PUBLIC_IP=172.20.10.143
+        ExecStart=/usr/bin/fleet
+    - name: docker-tcp.socket
+      command: start
       enable: true
-      name: blocker.application
+      content: |
+        [Unit]
+        Description=Docker Socket for the API
+
+        [Socket]
+        ListenStream=2375
+        Service=docker.service
+        BindIPv6Only=both
+
+        [Install]
+        WantedBy=sockets.target
+    - name: blocker.service
+      command: start
+      content: |
+        [Unit]
+        After=network-online.target        
+        Before=proxy.service
+        Description=Blocker Service
+        Documentation=http://github.com/infratablewoman/blocker
+        Requires=network-online.target
+
+        [Service]
+        TimeoutStartSec=10m
+        ExecStartPre=-/usr/bin/docker kill blocker1
+        ExecStartPre=-/usr/bin/docker rm blocker1
+        ExecStartPre=-mkdir /tmp/blocks
+        ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 —v /tmp:/tmp inflatablewoman/blocker 
+        RemainAfterExit=yes
   update: 
-    group: stable
-    reboot-strategy: false
-
-ssh_authorized_keys: 
-  - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDabTolrhp0rz5rIr16DNIQ02CPGv+08wkJGKGS4+aw2CI3e+Hfm9iCwIzCjMG468+h6bFQ9zO4jgfDx+BewerQIVtfx8XbdoXHRP4y8AtEQoszQni+sh8Xy/zHfwLEe6KoIvFxl1oac7HoCWBIS22G/StXW4AuChkBM3kuqoUPsYqjatYB0calz/PSw05wZu6kzv4SAA8WQz0PhBNKLROTiF4OxAYbYQ+WHelISgGbFLOs2zagBbZUqT0t2b0JUdFfDWIXI2E5tfnHPdvzYPUt15g58EnM1HYYX0xY9cUhueAbh/znN/rXEAMWdbrE5rqUGqv66a1OsWoWGS0IasD keithball@keiths-mpb.brainloop.com"
+    group: alpha
+    reboot-strategy: reboot
