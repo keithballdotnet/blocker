@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const AppVersion = "1.0.0 beta"
+const AppVersion = "1.0.1 beta"
 
 func main() {
 

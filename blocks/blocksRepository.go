@@ -82,12 +82,21 @@ type BlockedFileRepository struct {
 
 // NewBlockedFileRepository
 func NewBlockedFileRepository() (BlockedFileRepository, error) {
-	bucket, err := couchbase.GetBucket("http://localhost:8091", "default", "blockedfiles")
+	couchbaseEnvAddress := os.Getenv("CB_HOST")
+
+	couchbaseAddress := "http://localhost:8091"
+	if couchbaseEnvAddress != "" {
+		couchbaseAddress = couchbaseEnvAddress
+	}
+
+	bucket, err := couchbase.GetBucket(couchbaseAddress, "default", "blockedfiles")
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting bucket:  %v", err))
 		// NOTE:  I want this to run without a couchbase installation, so in event of error use a in memory store
 		return BlockedFileRepository{nil, make(map[string]*BlockedFile)}, nil
 	}
+
+	log.Printf("Connected to Couchbase Server: %s\n", couchbaseAddress)
 
 	return BlockedFileRepository{bucket, nil}, nil
 }

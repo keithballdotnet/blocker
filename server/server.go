@@ -13,7 +13,9 @@ func Start() {
 	mux.Handle("GET", "/api/blocker/{itemID}/{fileName}", tigertonic.Timed(NewFileDownloadHandler(), "FileDownloadHandler", nil))
 	mux.Handle("POST", "/api/blocker", tigertonic.Timed(NewPostMultipartUploadHandler(), "PostMultipartUploadHandler", nil))
 	mux.Handle("PUT", "/api/blocker", tigertonic.Timed(NewRawUploadHandler(), "RawUploadHandler", nil))
-	tigertonic.NewServer(":8002", mux).ListenAndServe()
+	// Log to Console
+	tigertonic.NewServer(":8002", tigertonic.ApacheLogged(mux)).ListenAndServe()
+	//tigertonic.NewServer(":8002", mux).ListenAndServe()
 
 	// Inititin the keypath will be enough to create the certificates if needed
 	//tigertonic.NewServer(":8002", mux).ListenAndServeTLS(crypto.RsaEncryptionChipher.PrivateKeyPath, crypto.RsaEncryptionChipher.PublicKeyPath)

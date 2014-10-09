@@ -3,7 +3,7 @@
 # Command Used to locate docker in shell : export DOCKER_HOST=tcp://BLAH BLAH 
 # Command Used to build image : docker build -t inflatablewoman/blocker .
 # Command Used to publish image : docker push inflatablewoman/blocker
-# Command Used to run image : docker run --publish 6060:8002 --name blocker1 --rm inflatablewoman/blocker
+# Command Used to run image : docker run -e "CB_HOST=http://COUCHBASE_ADDRESS:8091" --publish 6060:8002 --name blocker1 --rm inflatablewoman/blocker
 
 # Start from a Debian image with the latest version of Go installed
 # and a workspace (GOPATH) configured at /go.
