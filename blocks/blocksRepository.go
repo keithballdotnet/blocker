@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Inflatablewoman/azure"
 	"github.com/couchbase/gomemcached/client"
 	"github.com/couchbaselabs/go-couchbase"
 )
@@ -17,6 +19,75 @@ type BlockRepository interface {
 	SaveBlock(bytes []byte, hash string) error
 	GetBlock(blockHash string) ([]byte, error)
 	CheckBlockExists(blockHash string) (bool, error)
+}
+
+/* Azure BLOCK Provider */
+
+type AzureBlockRepository struct {
+	blobStore     azure.Azure
+	containerName string
+}
+
+// NewAzureBlockRepository
+func NewAzureBlockRepository() (AzureBlockRepository, error) {
+
+	accountName := os.Getenv("AZURE_ACCOUNT")
+	secret := os.Getenv("AZURE_SECRET")
+
+	blobStore := azure.New(accountName, secret)
+
+	// TODO:  Get these values from somewhere...
+	azureBlockRepo := AzureBlockRepository{blobStore, "blocks"}
+
+	return azureBlockRepo, nil
+}
+
+// Save persists a block into the repository
+func (r AzureBlockRepository) SaveBlock(data []byte, blockHash string) error {
+	buffer := bytes.NewBuffer(data)
+
+	// TODO:  Work out if there was an error here...
+	_, err := r.blobStore.FileUpload(r.containerName, blockHash+".blk", buffer)
+
+	// log.Printf("Upload hash: %s Code: %v Size: %v", blockHash+".blk", res, len(data))
+
+	return err
+}
+
+// Get a block from the repository
+func (r AzureBlockRepository) GetBlock(blockHash string) ([]byte, error) {
+	// Get data...
+	res, err := r.blobStore.FileDownload(r.containerName, blockHash+".blk")
+	if err != nil {
+		return nil, err
+	}
+
+	contents, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// log.Printf("Download hash: %s Code: %v Size: %v", blockHash, res.StatusCode, len(contents))
+
+	return contents, nil
+}
+
+// Check to see if a block exists
+func (r AzureBlockRepository) CheckBlockExists(blockHash string) (bool, error) {
+
+	res, err := r.blobStore.GetProperties(r.containerName, blockHash+".blk")
+
+	if err != nil {
+		log.Printf("Get blob props err: %s blobs: %v", err, res)
+		return false, err
+	}
+
+	if res.StatusCode == 200 {
+		return true, nil
+	}
+
+	// Block not present
+	return false, nil
 }
 
 /* CouchBase BLOCK Provider */

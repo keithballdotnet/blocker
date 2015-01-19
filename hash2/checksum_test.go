@@ -41,6 +41,6 @@ func (s *ChecksumSuite) TestHash(c *C) {
 	c.Assert(sha256AsString != "", IsTrue)
 
 	// Ensure is the same as out previous hash
-	firstHashString := "sha256:" + hex.EncodeToString(ourSha256)
+	firstHashString := hex.EncodeToString(ourSha256)
 	c.Assert(firstHashString == sha256AsString, IsTrue)
 }

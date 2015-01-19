@@ -30,14 +30,14 @@ func ComputeSha256Checksum(data []byte) []byte {
 func GetSha256HashString(data []byte) string {
 	hash := sha256.New()
 	hash.Write(data)
-	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // Return a hash from a stream reader
 func GetSha256HashStringFromStream(stream io.Reader) string {
 	hash := sha256.New()
 	io.Copy(hash, stream)
-	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // This returns true if the data matches the provided checksum.
