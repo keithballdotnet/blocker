@@ -3,11 +3,13 @@ package blocks
 import (
 	"errors"
 	"fmt"
-	"github.com/couchbaselabs/go-couchbase"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/couchbase/gomemcached/client"
+	"github.com/couchbaselabs/go-couchbase"
 )
 
 // BlockRepository is the interface for saving blocks to disk
@@ -15,6 +17,73 @@ type BlockRepository interface {
 	SaveBlock(bytes []byte, hash string) error
 	GetBlock(blockHash string) ([]byte, error)
 	CheckBlockExists(blockHash string) (bool, error)
+}
+
+/* CouchBase BLOCK Provider */
+
+type CouchBaseBlockRepository struct {
+	bucket *couchbase.Bucket
+}
+
+// NewCouchBaseBlockRepository
+func NewCouchBaseBlockRepository() (CouchBaseBlockRepository, error) {
+
+	couchbaseEnvAddress := os.Getenv("CB_HOST")
+
+	couchbaseAddress := "http://localhost:8091"
+	if couchbaseEnvAddress != "" {
+		couchbaseAddress = couchbaseEnvAddress
+	}
+
+	bucket, err := couchbase.GetBucket(couchbaseAddress, "default", "blocker")
+	if err != nil {
+		log.Println(fmt.Sprintf("Error getting bucket:  %v", err))
+		panic("Critical Error: No storage for files avilable in couchbase!")
+	}
+
+	log.Printf("Connected to Couchbase Server: %s\n", couchbaseAddress)
+
+	return CouchBaseBlockRepository{bucket}, nil
+}
+
+// Save persists a block into the repository
+func (r CouchBaseBlockRepository) SaveBlock(bytes []byte, blockHash string) error {
+	return r.bucket.SetRaw(blockHash, 0, bytes)
+}
+
+// Get a block from the repository
+func (r CouchBaseBlockRepository) GetBlock(blockHash string) ([]byte, error) {
+
+	if blockHash == "" {
+		return nil, errors.New("No Block hash passed")
+	}
+
+	// Get data...
+	blockData, err := r.bucket.GetRaw(blockHash)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return blockData, nil
+}
+
+// Check to see if a block exists
+func (r CouchBaseBlockRepository) CheckBlockExists(blockHash string) (bool, error) {
+
+	// Check to see if hash is present
+	result, err := r.bucket.Observe(blockHash)
+	if err != nil {
+		return false, err
+	}
+
+	// If the status is anything other than not found, then it's stored in couch base...
+	if result.Status != memcached.ObservedNotFound {
+		return true, nil
+	}
+
+	// Couch base does not have the block
+	return false, nil
 }
 
 /* DISK BLOCK Provider */
@@ -98,7 +167,7 @@ func NewBlockedFileRepository() (BlockedFileRepository, error) {
 		couchbaseAddress = couchbaseEnvAddress
 	}
 
-	bucket, err := couchbase.GetBucket(couchbaseAddress, "default", "blockedfiles")
+	bucket, err := couchbase.GetBucket(couchbaseAddress, "default", "blocker")
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting bucket:  %v", err))
 		// NOTE:  I want this to run without a couchbase installation, so in event of error use a in memory store

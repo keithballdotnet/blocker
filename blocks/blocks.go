@@ -66,7 +66,7 @@ func init() {
 	}
 
 	// Create peristent store for blocks
-	blockRepository, err = NewDiskBlockRepository()
+	blockRepository, err = NewCouchBaseBlockRepository()
 	if err != nil {
 		panic(err)
 	}
