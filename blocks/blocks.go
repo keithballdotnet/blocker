@@ -2,14 +2,15 @@ package blocks
 
 import (
 	"bytes"
-	"code.google.com/p/go-uuid/uuid"
-	"code.google.com/p/snappy-go/snappy"
-	"github.com/Inflatablewoman/blocker/crypto"
-	"github.com/Inflatablewoman/blocker/hash2"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"code.google.com/p/go-uuid/uuid"
+	"code.google.com/p/snappy-go/snappy"
+	"github.com/Inflatablewoman/blocker/crypto"
+	"github.com/Inflatablewoman/blocker/hash2"
 )
 
 // This is a form used to link the File to the Block without needing to load the full data from the database
@@ -65,7 +66,7 @@ func init() {
 	}
 
 	// Create peristent store for blocks
-	blockRepository, err = NewBlockRepository()
+	blockRepository, err = NewDiskBlockRepository()
 	if err != nil {
 		panic(err)
 	}

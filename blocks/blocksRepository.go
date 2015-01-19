@@ -10,14 +10,23 @@ import (
 	"path/filepath"
 )
 
-// BlockRepository : Saves blocks to disk
-type BlockRepository struct {
+// BlockRepository is the interface for saving blocks to disk
+type BlockRepository interface {
+	SaveBlock(bytes []byte, hash string) error
+	GetBlock(blockHash string) ([]byte, error)
+	CheckBlockExists(blockHash string) (bool, error)
+}
+
+/* DISK BLOCK Provider */
+
+// DiskBlockRepository : Saves blocks to disk
+type DiskBlockRepository struct {
 	path      string
 	extension string
 }
 
 // NewBlockRepository
-func NewBlockRepository() (BlockRepository, error) {
+func NewDiskBlockRepository() (DiskBlockRepository, error) {
 
 	depositoryDir := filepath.Join(os.TempDir(), "blocker")
 
@@ -28,11 +37,11 @@ func NewBlockRepository() (BlockRepository, error) {
 
 	log.Println("Storing blocks to: ", depositoryDir)
 
-	return BlockRepository{depositoryDir, ".blk"}, nil
+	return DiskBlockRepository{depositoryDir, ".blk"}, nil
 }
 
 // Save persists a block into the repository
-func (r BlockRepository) SaveBlock(bytes []byte, hash string) error {
+func (r DiskBlockRepository) SaveBlock(bytes []byte, hash string) error {
 	/*bytes, err := json.Marshal(block)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error marshalling file : %v", err))
@@ -49,7 +58,7 @@ func (r BlockRepository) SaveBlock(bytes []byte, hash string) error {
 }
 
 // Get a block from the repository
-func (r BlockRepository) GetBlock(blockHash string) ([]byte, error) {
+func (r DiskBlockRepository) GetBlock(blockHash string) ([]byte, error) {
 
 	readBytes, err := ioutil.ReadFile(filepath.Join(r.path, blockHash+r.extension))
 	if err != nil {
@@ -63,7 +72,7 @@ func (r BlockRepository) GetBlock(blockHash string) ([]byte, error) {
 }
 
 // Check to see if a block exists
-func (r BlockRepository) CheckBlockExists(blockHash string) (bool, error) {
+func (r DiskBlockRepository) CheckBlockExists(blockHash string) (bool, error) {
 	_, err := os.Stat(filepath.Join(r.path, blockHash+r.extension))
 	if err == nil {
 		return true, nil
