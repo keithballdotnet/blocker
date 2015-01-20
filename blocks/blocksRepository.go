@@ -31,12 +31,15 @@ type AzureBlockRepository struct {
 // NewAzureBlockRepository
 func NewAzureBlockRepository() (AzureBlockRepository, error) {
 
-	accountName := os.Getenv("AZURE_ACCOUNT")
-	secret := os.Getenv("AZURE_SECRET")
+	accountName := os.Getenv("BLOCKER_AZURE_ACCOUNT")
+	secret := os.Getenv("BLOCKER_AZURE_SECRET")
+
+	if accountName == "" || secret == "" {
+		panic("Enivronmental Variable: BLOCKER_AZURE_ACCOUNT or BLOCKER_AZURE_SECRET are empty!  You must set these values when using azure storage!")
+	}
 
 	blobStore := azure.New(accountName, secret)
 
-	// TODO:  Get these values from somewhere...
 	azureBlockRepo := AzureBlockRepository{blobStore, "blocks"}
 
 	return azureBlockRepo, nil

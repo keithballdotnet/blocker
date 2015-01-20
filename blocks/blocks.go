@@ -56,8 +56,11 @@ var blockedFileRepository BlockedFileRepository
 // Repository for blocks
 var blockRepository BlockRepository
 
+// StorageProviderName is the name of the selected storage provider
+var StorageProviderName string
+
 // Set up repositories in the init to keep connections alive
-func init() {
+func SetUpRepositories() {
 	var err error
 	// Create persistent store for BlockedFiles
 	blockedFileRepository, err = NewBlockedFileRepository()
@@ -65,11 +68,24 @@ func init() {
 		panic(err)
 	}
 
-	// Create peristent store for blocks
-	blockRepository, err = NewAzureBlockRepository()
+	// Load the storage provider
+	switch StorageProviderName {
+	case "nfs":
+		blockRepository, err = NewDiskBlockRepository()
+	case "azure":
+		blockRepository, err = NewAzureBlockRepository()
+	case "cb":
+		blockRepository, err = NewCouchBaseBlockRepository()
+	case "s3":
+		panic("Not Implemented")
+	default:
+		panic("Not Implemented")
+	}
+
 	if err != nil {
 		panic(err)
 	}
+
 }
 
 // Create a new file.
