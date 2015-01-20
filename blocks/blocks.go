@@ -78,7 +78,8 @@ func SetUpRepositories() {
 	case "s3":
 		panic("Not Implemented")
 	default:
-		panic("Not Implemented")
+		// Default to storing to disk...
+		blockRepository, err = NewDiskBlockRepository()
 	}
 
 	if err != nil {
