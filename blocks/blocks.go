@@ -21,12 +21,11 @@ type FileBlock struct {
 
 // File is a representation of a blocks together to form a file
 type BlockedFile struct {
-	ID          string      `json:"id"`
-	FileHash    string      `json:"fileHash"`
-	ContentType string      `json:"contentType"`
-	Length      int64       `json:"length"`
-	Created     time.Time   `json:"time"`
-	BlockList   []FileBlock `json:"blocks"`
+	ID        string      `json:"id"`
+	FileHash  string      `json:"fileHash"`
+	Length    int64       `json:"length"`
+	Created   time.Time   `json:"time"`
+	BlockList []FileBlock `json:"blocks"`
 }
 
 // 4Mb block size
@@ -100,7 +99,7 @@ func BlockFile(sourceFilepath string) (BlockedFile, error) {
 	defer sourceFile.Close()
 
 	// Get blocked file (function used for testing so always same here)
-	blockedFile, err := BlockBuffer(sourceFile, "plain/text")
+	blockedFile, err := BlockBuffer(sourceFile)
 	if err != nil {
 		return BlockedFile{}, err
 	}
@@ -109,7 +108,7 @@ func BlockFile(sourceFilepath string) (BlockedFile, error) {
 }
 
 // Block a source into a file
-func BlockBuffer(source io.Reader, fileType string) (BlockedFile, error) {
+func BlockBuffer(source io.Reader) (BlockedFile, error) {
 
 	// Set up seeker
 	readSeeker, _ := source.(io.ReadSeeker)
@@ -175,7 +174,7 @@ func BlockBuffer(source io.Reader, fileType string) (BlockedFile, error) {
 		fileblocks = append(fileblocks, fileblock)
 	}
 
-	blockedFile := BlockedFile{uuid.New(), fileHash, fileType, fileLength, time.Now(), fileblocks}
+	blockedFile := BlockedFile{uuid.New(), fileHash, fileLength, time.Now(), fileblocks}
 
 	blockedFileRepository.SaveBlockedFile(blockedFile)
 

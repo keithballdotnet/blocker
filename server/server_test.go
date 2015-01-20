@@ -23,7 +23,7 @@ type ServerSuite struct{}
 
 var _ = Suite(&ServerSuite{})
 
-var baseURL = "http://localhost:8002"
+var baseURL = "http://localhost:8010"
 
 // const inputFile = "testdata/tempest.txt"
 
@@ -80,11 +80,10 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 
 	c.Assert(blockedFile.ID != "", IsTrue)
 	//	c.Assert(blockedFile.Name == filename, IsTrue)
-	c.Assert(blockedFile.ContentType == contentType, IsTrue)
 	c.Assert(blockedFile.Length == length, IsTrue)
 
 	// Now try to get the data we uploaded
-	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s/%s", baseURL, blockedFile.ID, filename))
+	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	defer response.Body.Close()
 
@@ -138,11 +137,10 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 
 	c.Assert(blockedFile.ID != "", IsTrue)
 	//	c.Assert(blockedFile.Name == filename, IsTrue)
-	c.Assert(blockedFile.ContentType == contentType, IsTrue)
 	c.Assert(blockedFile.Length == length, IsTrue)
 
 	// Now try to get the data we uploaded
-	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s/%s", baseURL, blockedFile.ID, filename))
+	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	defer response.Body.Close()

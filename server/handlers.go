@@ -19,6 +19,7 @@ func GetHello(u *url.URL, h http.Header, _ interface{}) (int, http.Header, strin
 	return http.StatusOK, nil, "hello", nil
 }
 
+// RawUploadHandler handles PUT operations
 type RawUploadHandler struct {
 }
 
@@ -29,12 +30,13 @@ func NewRawUploadHandler() RawUploadHandler {
 func (handler RawUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Got PUT upload request")
 
-	contentType := r.Header["Content-Type"][0]
+	// contentType := r.Header["Content-Type"][0]
 	// fileName := r.Header["Filename"][0]
 
-	BlockAndRespond(w, contentType, r.Body)
+	BlockAndRespond(w, r.Body)
 }
 
+// PostMultipartUploadHandler handles POST operations
 type PostMultipartUploadHandler struct{}
 
 func NewPostMultipartUploadHandler() PostMultipartUploadHandler {
@@ -44,24 +46,41 @@ func NewPostMultipartUploadHandler() PostMultipartUploadHandler {
 func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Got POST upload request")
 
-	file, _, err := r.FormFile("file") // the FormFile function takes in the POST input
-
+	err := r.ParseMultipartForm(100000)
 	if err != nil {
-		log.Println("Error reading input file: ", err)
 		HandleErrorWithResponse(w, err)
 		return
 	}
-	defer checkClose(file, &err)
 
-	// fileName := header.Filename
-	// TODO: Get content type
-	contentType := "text/plain" //header.Header["Content-Type"][0]
+	m := r.MultipartForm
 
-	BlockAndRespond(w, contentType, r.Body)
+	// Currently we only support one file upload...  it will stop after processing the first file.
+	for fname, _ := range m.File {
+		files := m.File[fname]
+		for i, _ := range files {
+			//for each fileheader, get a handle to the actual file
+			file, _ := files[i].Open()
+			defer file.Close()
+			if err != nil {
+				HandleErrorWithResponse(w, err)
+				return
+			}
+
+			fileName := files[i].Filename
+			contentType := files[i].Header["Content-Type"][0]
+
+			fmt.Printf("file: %#v type: %v\n", fileName, contentType)
+
+			// This is stupid... but there you go.
+			// See this for further discussion: http://www.reddit.com/r/golang/comments/2cdu7s/how_do_i_avoid_using_ioutilreadall/
+			// fileBytes, err := ioutil.ReadAll(file)
+			BlockAndRespond(w, file)
+		}
+	}
 }
 
 // Handle the uploaded data.
-func BlockAndRespond(w http.ResponseWriter, contentType string, content io.Reader) {
+func BlockAndRespond(w http.ResponseWriter, content io.Reader) {
 
 	// Create temp file
 	outFile, err := ioutil.TempFile(os.TempDir(), "upload_")
@@ -96,7 +115,7 @@ func BlockAndRespond(w http.ResponseWriter, contentType string, content io.Reade
 	defer sourceFile.Close()
 	defer os.Remove(outFile.Name())
 
-	blockedFile, err := blocks.BlockBuffer(sourceFile, contentType)
+	blockedFile, err := blocks.BlockBuffer(sourceFile)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header()["Content-Type"] = []string{"application/json"}
@@ -121,8 +140,6 @@ func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	log.Println("Got GET file request")
 
 	itemID := r.URL.Query().Get("itemID")
-	fileName := r.URL.Query().Get("fileName")
-
 	// fmt.Fprintf(w, "Going to get \"%v\"\n", itemID)
 
 	buffer, err := blocks.UnblockFileToBuffer(itemID)
@@ -133,8 +150,8 @@ func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	}
 
 	header := w.Header()
-	header["Content-Type"] = []string{"text/plain"}
-	header["Content-Disposition"] = []string{"attachment;filename=" + fileName}
+	header["Content-Type"] = []string{"application/octet-stream"}
+	// header["Content-Disposition"] = []string{"attachment;filename=" + fileName}
 
 	buffer.WriteTo(w)
 
