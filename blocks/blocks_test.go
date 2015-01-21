@@ -28,6 +28,14 @@ const changedOutputFileName = "tempest_changed.txt"
 const liteIdeInFile = "testdata/liteidex23.2.linux-32.tar.bz2"
 const liteIdeoutFile = "liteidex23.2.linux-32.tar.bz2"
 
+func (s *BlockSuite) SetUpSuite(c *C) {
+	// Ensure string is to lower
+	StorageProviderName = "nfs"
+
+	// Now set up repos
+	SetUpRepositories()
+}
+
 func (s *BlockSuite) TestLiteide(c *C) {
 
 	//c.Skip("Want to work out what is going on")
