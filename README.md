@@ -2,7 +2,7 @@ Blocker
 =======
 A block based filesystem microservice written in go
 [![GoDoc](https://godoc.org/github.com/Inflatablewoman/blocker?status.svg)](https://godoc.org/github.com/Inflatablewoman/blocker)
-[![Build Status](https://drone.io/github.com/Inflatablewoman/blocker/status.png)](https://drone.io/github.com/Inflatablewoman/blocker/latest)
+[![Build Status](https://travis-ci.org/Inflatablewoman/blocker.svg)](https://travis-ci.org/Inflatablewoman/blocker.svg)
 
 ##Features
 

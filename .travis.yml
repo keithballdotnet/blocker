@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - tip
+
+install:
+  - go get -v github.com/Inflatablewoman/blocker
+
+script: go test -v github.com/Inflatablewoman/blocker/blocks
+
+notifications:
+  email: false
