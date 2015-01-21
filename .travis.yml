@@ -9,7 +9,6 @@ install:
 
 script: 
   - go build github.com/Inflatablewoman/blocker
-  - go test -v github.com/Inflatablewoman/blocker/blocks
 
 notifications:
   email: false
