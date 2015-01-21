@@ -7,23 +7,29 @@ A block based filesystem microservice written in go
 ##Features
 
 - Files are stored in blocks
+- Immutable blocks (Append Only)
 - Blocks are hashed
 - Blocks are encrypted
 - Blocks are compressed using Snappy Compression
+- Reduces data duplication
 - Files where blocks have not changed reference old blocks
-- A REST interface for downloading blocked documents
-- A REST interface for uploading blocked documents
+- A REST interface for manipulating blocks
 - Uses couchbase for BlockedFiles repository
-- Uses local disk for FileBlocks repository
+- Possible to specify mulitple Storage Providers.
+   + nfs - Local mount disk storage
+   + couchbase - Couchbase Raw Binary storage
+   + azure - Azure Simple Storage
+   + s3 - Planned s3 storage
 
 ##REST API 
 
-The REST API interface can be used to perform operations against the Filesystem.  Default location is localhost:8002.
+The REST API interface can be used to perform operations against the Filesystem.  Default location is localhost:8010.
 
 HTTP Method | URI path | Description
 ------------|----------|------------
-GET         | /api/blocker  | Retreives a hello.
-GET         | /api/blocker/{itemID}/{fileName}  | Retreives a BlockedFile based on the passed ID
+GET         | /api/blocker  | Retrieves a hello.
+GET         | /api/blocker/{itemID}  | Retrieves a BlockedFile based on the passed ID
+DELETE      | /api/blocker/{itemID}  | Delete a BlockedFile based on the passed ID
 POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFiles
 PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFiles
 
@@ -32,10 +38,6 @@ PUT        | /api/blocker   | Uploads a file and returns a newly created Blocked
 
 ##TODO
 
-- Add a way to delete files
 - Move encryption from TOY format to be a bit more secure
 - Permissions
 - Authentication
-- Stream content to disk rather than save to temp location
-
-

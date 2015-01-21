@@ -68,6 +68,10 @@ func (s *BlockSuite) TestLiteide(c *C) {
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	err = DeleteBlockedFile(bibleBlockFile.ID)
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
 
 func (s *BlockSuite) TestKingJamesBible(c *C) {
@@ -103,6 +107,9 @@ func (s *BlockSuite) TestKingJamesBible(c *C) {
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
+	err = DeleteBlockedFile(bibleBlockFile.ID)
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
 
 func (s *BlockSuite) TestTempest(c *C) {
@@ -126,9 +133,6 @@ func (s *BlockSuite) TestTempest(c *C) {
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
-
-	// Check it was created in the past
-	c.Assert(blockFile.Created.Before(time.Now()), IsTrue)
 
 	// Check we read the full file size
 	c.Assert(blockFile.Length == inputFileInfo.Size(), IsTrue)
@@ -156,10 +160,14 @@ func (s *BlockSuite) TestTempest(c *C) {
 
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
+
+	err = DeleteBlockedFile(blockFile.ID)
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
 
 // Benchmark the blocking of Tempest file
-func (s *BlockSuite) BenchmarkTempestCompressedEncrypted30Kb(c *C) {
+/*func (s *BlockSuite) BenchmarkTempestCompressedEncrypted30Kb(c *C) {
 	for i := 0; i < c.N; i++ {
 		// Set up test
 		BlockSize = BlockSize30Kb
@@ -189,7 +197,7 @@ func (s *BlockSuite) BenchmarkTempestUncompressedUnencrypted4Mb(c *C) {
 
 		BlockFile(inputFile)
 	}
-}
+}*/
 
 func (s *BlockSuite) TestChangeTempest(c *C) {
 
@@ -219,6 +227,9 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
 
+	// Remember the first block id
+	firstBlockID := blockFile.ID
+
 	// Check that block used in first block is the same
 	c.Assert(firstFileHash == blockFile.BlockList[0].Hash, IsTrue)
 
@@ -230,6 +241,9 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 
 	// Check we have an ID
 	c.Assert(blockFile.ID != "", IsTrue)
+
+	// Remember the first block id
+	secondBlockID := blockFile.ID
 
 	changedOutputFile := os.TempDir() + "/" + changedOutputFileName
 
@@ -247,22 +261,12 @@ func (s *BlockSuite) TestChangeTempest(c *C) {
 
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == changedInputFileInfo.Size(), IsTrue)
+
+	err = DeleteBlockedFile(firstBlockID)
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	err = DeleteBlockedFile(secondBlockID)
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
-
-/*func (s *BlockSuite) TestBlockRepository(c *C) {
-
-	// Get repository
-	repository, err := NewBlockRepository()
-	c.Assert(err == nil, IsTrue)
-
-	hash := "sha256:justalonghashthatgoesonandonandon"
-	data := []byte(hash)
-
-	// Create a block
-	block := Block{hash, data}
-
-	// Save
-	err = repository.SaveBlock(block)
-	c.Assert(err == nil, IsTrue)
-
-}*/

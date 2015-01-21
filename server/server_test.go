@@ -103,6 +103,12 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
+
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	response, err = client.Do(request)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+
 }
 
 func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
@@ -149,4 +155,9 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 
 	receivedContent := string(body)
 	c.Assert(receivedContent == uploadContent, IsTrue, Commentf("Content was: %v", receivedContent))
+
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	response, err = client.Do(request)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 }

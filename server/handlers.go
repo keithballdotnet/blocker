@@ -19,6 +19,21 @@ func GetHello(u *url.URL, h http.Header, _ interface{}) (int, http.Header, strin
 	return http.StatusOK, nil, "hello", nil
 }
 
+// DeleteHandler - The REST endpoint for deleting a BlockedFile
+func DeleteHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, bool, error) {
+	log.Println("Got DELETE block request")
+
+	itemID := u.Query().Get("itemID")
+
+	err := blocks.DeleteBlockedFile(itemID)
+	if err != nil {
+		return http.StatusInternalServerError, nil, false, err
+	}
+
+	// All good!
+	return http.StatusOK, nil, true, nil
+}
+
 // RawUploadHandler handles PUT operations
 type RawUploadHandler struct {
 }
