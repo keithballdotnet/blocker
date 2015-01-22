@@ -25,7 +25,7 @@ func Start() {
 	mux.Handle("PUT", "/api/blocker", tigertonic.Timed(NewRawUploadHandler(), "RawUploadHandler", nil))
 	// Log to Console
 	server := tigertonic.NewServer(":8010", tigertonic.ApacheLogged(mux))
-	if *certKey == "" {
+	if *certKey == "" || *cert == "" {
 		server.ListenAndServe()
 	} else {
 		log.Println("SSL Enabled")
