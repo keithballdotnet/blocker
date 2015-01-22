@@ -36,6 +36,146 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 	SetUpRepositories()
 }
 
+func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
+
+	// Block a file...
+	start := time.Now()
+	bibleBlockFile, err := BlockFile(liteIdeInFile)
+	end := time.Now()
+
+	fmt.Printf("1st Blocked LiteIde took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	bibleOutFile := os.TempDir() + "/" + liteIdeoutFile
+
+	// Clean up any old file
+	os.Remove(bibleOutFile)
+
+	// Get the file and create a copy to the output
+	start = time.Now()
+	err = UnblockFile(bibleBlockFile.ID, bibleOutFile)
+	end = time.Now()
+
+	fmt.Printf("1st Unblocked LiteIde took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Maintain the first BlockFileID
+	firstBlockFileID := bibleBlockFile.ID
+	firstBlockFileBlockHash := bibleBlockFile.BlockList[0].Hash
+
+	// Check the block store has the data...
+	blockExists, _ := BlockStore.CheckBlockExists(firstBlockFileBlockHash)
+	c.Assert(blockExists, IsTrue)
+
+	// Block the file again
+	start = time.Now()
+	bibleBlockFile, err = BlockFile(liteIdeInFile)
+	end = time.Now()
+
+	fmt.Printf("2nd Blocked LiteIde took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Maintain the second BlockFileID
+	secondBlockFileID := bibleBlockFile.ID
+	secondBlockFileBlockHash := bibleBlockFile.BlockList[0].Hash
+
+	// Should be new BlockedFileID despite the same content
+	c.Assert(secondBlockFileID != firstBlockFileID, IsTrue)
+
+	// Check that block used in first block is the same
+	c.Assert(firstBlockFileBlockHash == secondBlockFileBlockHash, IsTrue)
+
+	// Copy our first BlockedFile
+	start = time.Now()
+	bibleBlockFile, err = CopyBlockedFile(firstBlockFileID)
+	end = time.Now()
+
+	fmt.Printf("Copied BlockFile: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	thirdBlockFileID := bibleBlockFile.ID
+	thirdBlockFileBlockHash := bibleBlockFile.BlockList[0].Hash
+
+	// Should be new BlockedFileID despite the same content
+	c.Assert(thirdBlockFileID != firstBlockFileID, IsTrue)
+
+	// Check that block used in first block is the same
+	c.Assert(firstBlockFileBlockHash == thirdBlockFileBlockHash, IsTrue)
+
+	fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(thirdBlockFileBlockHash)
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// This file block should be used 3 times
+	c.Assert(fileBlockInfo.UseCount == 3, IsTrue, Commentf("Block shound be used 3 time.  Is used: : %v", fileBlockInfo.UseCount))
+
+	// Delete first block...
+	start = time.Now()
+	err = DeleteBlockedFile(firstBlockFileID)
+	end = time.Now()
+
+	fmt.Printf("Delete Block took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Ensure the BlockedFile is no longer there
+	_, err = BlockedFileStore.GetBlockedFile(firstBlockFileID)
+
+	// We should have an error
+	c.Assert(err == nil, IsFalse)
+
+	// Check the use count
+	fileBlockInfo, err = FileBlockInfoStore.GetFileBlockInfo(thirdBlockFileBlockHash)
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// This file block should be used 2 times
+	c.Assert(fileBlockInfo.UseCount == 2, IsTrue, Commentf("Block shound be used 2 time.  Is used: : %v", fileBlockInfo.UseCount))
+
+	// Delete second blockedfile
+	start = time.Now()
+	err = DeleteBlockedFile(secondBlockFileID)
+	end = time.Now()
+
+	fmt.Printf("Delete Block took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Delete third blockedfile
+	start = time.Now()
+	err = DeleteBlockedFile(thirdBlockFileID)
+	end = time.Now()
+
+	fmt.Printf("Delete Block took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// There should now be no reference to the data in any repository
+
+	// Check the use count
+	_, err = FileBlockInfoStore.GetFileBlockInfo(thirdBlockFileBlockHash)
+
+	// There should be an error
+	c.Assert(err == nil, IsFalse)
+
+	// Check the block store has deleted the data...
+	blockExists, _ = BlockStore.CheckBlockExists(thirdBlockFileBlockHash)
+	c.Assert(blockExists, IsFalse)
+}
+
 func (s *BlockSuite) TestLiteide(c *C) {
 
 	//c.Skip("Want to work out what is going on")

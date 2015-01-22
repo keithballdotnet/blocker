@@ -127,7 +127,7 @@ func NewCouchBaseBlockRepository() (CouchBaseBlockRepository, error) {
 		panic("Critical Error: No storage for files avilable in couchbase!")
 	}
 
-	log.Printf("Connected to Couchbase Server: %s\n", couchbaseAddress)
+	log.Printf("NewCouchBaseBlockRepository: Connected to Couchbase Server: %s\n", couchbaseAddress)
 
 	return CouchBaseBlockRepository{bucket}, nil
 }
@@ -283,7 +283,7 @@ func NewCouchbaseFileBlockInfoRepository() (CouchbaseFileBlockInfoRepository, er
 		return CouchbaseFileBlockInfoRepository{nil, make(map[string]*FileBlockInfo)}, nil
 	}
 
-	log.Printf("Connected to Couchbase Server: %s\n", couchbaseAddress)
+	log.Printf("NewCouchbaseFileBlockInfoRepository: Connected to Couchbase Server: %s\n", couchbaseAddress)
 
 	return CouchbaseFileBlockInfoRepository{bucket, nil}, nil
 }
@@ -294,8 +294,12 @@ func (r CouchbaseFileBlockInfoRepository) DeleteFileBlockInfo(hash string) error
 	}
 
 	if r.bucket == nil {
-		delete(r.InMemoryBucket, cbFileBlockInfoPrefix+hash)
-		return nil
+		if _, ok := r.InMemoryBucket[hash]; ok {
+			delete(r.InMemoryBucket, hash)
+			return nil
+		}
+
+		return errors.New("Not found!")
 	}
 
 	if err := r.bucket.Delete(cbFileBlockInfoPrefix + hash); err != nil {
@@ -308,7 +312,7 @@ func (r CouchbaseFileBlockInfoRepository) DeleteFileBlockInfo(hash string) error
 // Save persists a BlockedFile into the repository
 func (r CouchbaseFileBlockInfoRepository) SaveFileBlockInfo(fileBlockInfo FileBlockInfo) error {
 	if r.bucket == nil {
-		r.InMemoryBucket[cbFileBlockInfoPrefix+fileBlockInfo.Hash] = &fileBlockInfo
+		r.InMemoryBucket[fileBlockInfo.Hash] = &fileBlockInfo
 		return nil
 	}
 
@@ -322,7 +326,11 @@ func (r CouchbaseFileBlockInfoRepository) GetFileBlockInfo(hash string) (*FileBl
 	}
 
 	if r.bucket == nil {
-		return r.InMemoryBucket[hash], nil
+		if val, ok := r.InMemoryBucket[hash]; ok {
+			return val, nil
+		}
+
+		return &FileBlockInfo{}, errors.New("Not found!")
 	}
 
 	var fileBlockInfo FileBlockInfo
@@ -356,7 +364,7 @@ func NewBlockedFileRepository() (BlockedFileRepository, error) {
 		return BlockedFileRepository{nil, make(map[string]*BlockedFile)}, nil
 	}
 
-	log.Printf("Connected to Couchbase Server: %s\n", couchbaseAddress)
+	log.Printf("NewBlockedFileRepository: Connected to Couchbase Server: %s\n", couchbaseAddress)
 
 	return BlockedFileRepository{bucket, nil}, nil
 }
@@ -378,7 +386,11 @@ func (r BlockedFileRepository) GetBlockedFile(blockfileid string) (*BlockedFile,
 	}
 
 	if r.bucket == nil {
-		return r.InMemoryBucket[blockfileid], nil
+		if val, ok := r.InMemoryBucket[blockfileid]; ok {
+			return val, nil
+		}
+
+		return &BlockedFile{}, errors.New("Not found!")
 	}
 
 	var blockedFile BlockedFile
@@ -397,8 +409,12 @@ func (r BlockedFileRepository) DeleteBlockedFile(blockfileid string) error {
 	}
 
 	if r.bucket == nil {
-		delete(r.InMemoryBucket, blockfileid)
-		return nil
+		if _, ok := r.InMemoryBucket[blockfileid]; ok {
+			delete(r.InMemoryBucket, blockfileid)
+			return nil
+		}
+
+		return errors.New("Not found!")
 	}
 
 	if err := r.bucket.Delete(blockfileid); err != nil {

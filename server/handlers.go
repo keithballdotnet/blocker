@@ -19,6 +19,21 @@ func GetHello(u *url.URL, h http.Header, _ interface{}) (int, http.Header, strin
 	return http.StatusOK, nil, "hello", nil
 }
 
+// CopyHandler - The REST endpoint for deleting a BlockedFile
+func CopyHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, *blocks.BlockedFile, error) {
+	log.Println("Got COPY block request")
+
+	itemID := u.Query().Get("itemID")
+
+	blockedFile, err := blocks.CopyBlockedFile(itemID)
+	if err != nil {
+		return http.StatusInternalServerError, nil, nil, err
+	}
+
+	// All good!
+	return http.StatusOK, nil, &blockedFile, nil
+}
+
 // DeleteHandler - The REST endpoint for deleting a BlockedFile
 func DeleteHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, bool, error) {
 	log.Println("Got DELETE block request")

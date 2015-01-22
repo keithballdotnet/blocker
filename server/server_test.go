@@ -85,16 +85,16 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	// Now try to get the data we uploaded
 	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
-	defer response.Body.Close()
 
 	// Clean up any old file
 	os.Remove(outputFile)
 
 	outFile, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
-	defer outFile.Close()
 
 	io.Copy(outFile, response.Body)
+	response.Body.Close()
+	outFile.Close()
 
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
@@ -104,7 +104,54 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	// Check we wrote the full file size
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
 
+	// Copy the file
+	request, err = http.NewRequest("COPY", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	response, err = client.Do(request)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+
+	body, err = ioutil.ReadAll(response.Body)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	var copiedBlockFile blocks.BlockedFile
+	err = json.Unmarshal(body, &copiedBlockFile)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	fmt.Println(copiedBlockFile)
+
+	c.Assert(copiedBlockFile.ID != blockedFile.ID, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Now try to get the data we copied
+	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, copiedBlockFile.ID))
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Clean up any old file
+	os.Remove(outputFile)
+
+	outFile, err = os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	defer outFile.Close()
+	defer os.Remove(outputFile)
+
+	io.Copy(outFile, response.Body)
+	response.Body.Close()
+
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Get some info about the file we are going test
+	outputFileInfo, _ = os.Stat(outputFile)
+
+	// Check we wrote the full file size
+	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
+
+	// Delete the original upload
 	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	response, err = client.Do(request)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+
+	// Delete the copied upload
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, copiedBlockFile.ID), nil)
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
