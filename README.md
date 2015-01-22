@@ -30,8 +30,9 @@ HTTP Method | URI path | Description
 GET         | /api/blocker  | Retrieves a hello.
 GET         | /api/blocker/{itemID}  | Retrieves a BlockedFile based on the passed ID
 DELETE      | /api/blocker/{itemID}  | Delete a BlockedFile based on the passed ID
-POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFiles
-PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFiles
+COPY      | /api/blocker/{itemID}  | Creates a copy of a BlockedFile based on the passed ID
+POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
+PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
 
 ##Example code
 [Example test scenario](https://github.com/Inflatablewoman/blocker/blob/master/server/server_test.go)
@@ -39,5 +40,6 @@ PUT        | /api/blocker   | Uploads a file and returns a newly created Blocked
 ##TODO
 
 - Move encryption from TOY format to be a bit more secure
+- The store should not use the hash as the ID as this would then be a predictable location for a file.  A problem?
 - Permissions
 - Authentication
