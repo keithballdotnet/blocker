@@ -2,9 +2,7 @@ language: go
 
 go:
   - tip
-before_install:
-  - go get github.com/axw/gocov/gocov
-  - go get github.com/mattn/goveralls
+
 install:
   - go get -v github.com/Inflatablewoman/blocker
   - go get gopkg.in/check.v1
