@@ -2,14 +2,20 @@ language: go
 
 go:
   - tip
-
+before_install:
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
 install:
   - go get -v github.com/Inflatablewoman/blocker
   - go get gopkg.in/check.v1
+  - go get code.google.com/p/go.tools/cmd/cover
+  - go get github.com/mattn/goveralls
 
 script: 
   - go build github.com/Inflatablewoman/blocker
   - go test -v github.com/Inflatablewoman/blocker/blocks
+  - go test -v -covermode=count -coverprofile=coverage.out
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken rPPbY8OcTpfS58eJqMaxgq724pLIOEbg0
 
 notifications:
   email: false
