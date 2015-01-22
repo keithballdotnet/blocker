@@ -3,7 +3,15 @@ package server
 import (
 	// "fmt"
 	//"github.com/Inflatablewoman/blocker/crypto"
+	"flag"
+	"log"
+
 	"github.com/rcrowley/go-tigertonic"
+)
+
+var (
+	cert    = flag.String("cert", "", "certificate pathname")
+	certKey = flag.String("certkey", "", "private key pathname")
 )
 
 // Start a HTTP listener
@@ -16,7 +24,16 @@ func Start() {
 	mux.Handle("POST", "/api/blocker", tigertonic.Timed(NewPostMultipartUploadHandler(), "PostMultipartUploadHandler", nil))
 	mux.Handle("PUT", "/api/blocker", tigertonic.Timed(NewRawUploadHandler(), "RawUploadHandler", nil))
 	// Log to Console
-	tigertonic.NewServer(":8010", tigertonic.ApacheLogged(mux)).ListenAndServe()
+	server := tigertonic.NewServer(":8010", tigertonic.ApacheLogged(mux))
+	if *certKey == "" || *cert == "" {
+		server.ListenAndServe()
+	} else {
+		log.Println("SSL Enabled")
+		if err := server.ListenAndServeTLS(*cert, *certKey); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	//tigertonic.NewServer(":8002", mux).ListenAndServe()
 
 	// Inititin the keypath will be enough to create the certificates if needed
