@@ -9,7 +9,7 @@ A block based filesystem microservice written in go
 - Files are stored in blocks
 - Immutable blocks (Append Only)
 - Blocks are hashed
-- Blocks are encrypted
+- Blocks are encrypted with own unique Symmetric Key (Symmetric Keys are Encrypted with RSA Master Key)
 - Blocks are compressed using Snappy Compression
 - Reduces data duplication
 - Files where blocks have not changed reference old blocks

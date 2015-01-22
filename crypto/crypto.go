@@ -27,7 +27,9 @@ var CertifcatePath = filepath.Join(os.TempDir(), "blocker", "cert.pem")
 var KeyPath = filepath.Join(os.TempDir(), "blocker", "key.pem")
 
 // Path to the encrypted aes key
-var aesKeyPath = filepath.Join(os.TempDir(), "blocker", "aes.key")
+var aesKeyPath = filepath.Join(os.TempDir(), "blocker")
+
+var aesKeyName = "%s.key"
 
 // The key to be used to encrypt and decrypt when using RSA encryption
 var RsaEncryptionChipher RsaChipher
@@ -40,9 +42,6 @@ type RsaChipher struct {
 	PublicKeyPath  string
 }
 
-// The AES key used for AES encryption
-var aesEncryptionKey AesKey
-
 // Structure to hold unencrypted AES key
 type AesKey struct {
 	key []byte
@@ -50,7 +49,6 @@ type AesKey struct {
 
 func init() {
 	LoadOrGenerateRsaKey()
-	GetAesSecret()
 }
 
 // Load or Generate a RSA certiciate
@@ -96,8 +94,8 @@ func GenerateRsaKey() {
 	template := x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(0),
 		Subject: pkix.Name{
-			CommonName:   "Acme Encryption Certificate",
-			Organization: []string{"Acme Co"},
+			CommonName:   "Blocker Encryption Master Key",
+			Organization: []string{"Inflatablewoman's CA"},
 		},
 		NotBefore: now.Add(-5 * time.Minute).UTC(),
 		NotAfter:  now.AddDate(1, 0, 0).UTC(), // valid for 1 year.
@@ -155,14 +153,18 @@ func GenerateAesSecret() []byte {
 	return key
 }
 
+// DeleteAesSecret - Remove a key if not needed
+func DeleteAesSecret(hash string) {
+	os.Remove(GetAesSecretPath(hash))
+}
+
 // Get the AES secret to be used for encryption
-func GetAesSecret() (err error) {
+func GetAesSecret(hash string) (AesKey, error) {
 	// Read key
-	keyBytes, err := ioutil.ReadFile(aesKeyPath)
+	keyBytes, err := ioutil.ReadFile(GetAesSecretPath(hash))
 	if err == nil {
 		key, _ := RsaDecrypt(keyBytes)
-		aesEncryptionKey = AesKey{key}
-		return
+		return AesKey{key}, nil
 	}
 
 	// Create new Aes Secret
@@ -172,19 +174,22 @@ func GetAesSecret() (err error) {
 	encryptedKey, err := RsaEncrypt(newAesKey)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
-		return err
+		return AesKey{}, err
 	}
 
 	// Save encrypted key to disk
-	err = ioutil.WriteFile(aesKeyPath, encryptedKey, 0644)
+	err = ioutil.WriteFile(GetAesSecretPath(hash), encryptedKey, 0644)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
-		return err
+		return AesKey{}, err
 	}
 
-	aesEncryptionKey = AesKey{newAesKey}
+	return AesKey{newAesKey}, nil
+}
 
-	return nil
+// GetAesSecretPath - Will return a key name for a hash
+func GetAesSecretPath(hash string) string {
+	return filepath.Join(aesKeyPath, fmt.Sprintf(aesKeyName, hash))
 }
 
 // Hex to bytes
@@ -198,8 +203,9 @@ func encodeHex(bytes []byte) string {
 }
 
 // Encrpyt data using AES with the CFB chipher mode
-func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
-	// key := []byte("a very very very very secret key") // 32 bytes
+func AesCfbDecrypt(encryptedBytes []byte, hash string) ([]byte, error) {
+	// Get the key for this hash
+	aesEncryptionKey, err := GetAesSecret(hash)
 
 	block, err := aes.NewCipher(aesEncryptionKey.key)
 	if err != nil {
@@ -225,8 +231,9 @@ func AesCfbDecrypt(encryptedBytes []byte) ([]byte, error) {
 }
 
 // Encrpyt data using AES with the CFB chipher mode
-func AesCfbEncrypt(bytesToEncrypt []byte) ([]byte, error) {
+func AesCfbEncrypt(bytesToEncrypt []byte, hash string) ([]byte, error) {
 	// key := []byte("a very very very very secret key") // 32 bytes
+	aesEncryptionKey, err := GetAesSecret(hash)
 
 	block, err := aes.NewCipher(aesEncryptionKey.key)
 	if err != nil {
