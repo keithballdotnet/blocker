@@ -224,7 +224,6 @@ func DeleteBlockedFile(blockFileID string) error {
 		fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(fileBlock.Hash)
 		if err == nil {
 			fileBlockInfo.UseCount = fileBlockInfo.UseCount - 1
-			log.Printf("Block: %s UseCount: %v", fileBlock.Hash, fileBlockInfo.UseCount)
 
 			// Is the file block in use anymore?
 			if fileBlockInfo.UseCount < 1 {
@@ -251,7 +250,6 @@ func DeleteBlockedFile(blockFileID string) error {
 			}
 
 		}
-
 	}
 
 	// Remove blocked file entry

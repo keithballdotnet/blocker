@@ -189,7 +189,11 @@ type DiskBlockRepository struct {
 // NewBlockRepository
 func NewDiskBlockRepository() (DiskBlockRepository, error) {
 
-	depositoryDir := filepath.Join(os.TempDir(), "blocker")
+	// Use the path passed from ENV
+	depositoryDir := os.Getenv("BLOCKER_DISK_DIR")
+	if depositoryDir == "" {
+		depositoryDir = filepath.Join(os.TempDir(), "blocker")
+	}
 
 	err := os.Mkdir(depositoryDir, 0777)
 	if err != nil && !os.IsExist(err) {
@@ -201,15 +205,48 @@ func NewDiskBlockRepository() (DiskBlockRepository, error) {
 	return DiskBlockRepository{depositoryDir, ".blk"}, nil
 }
 
-// Save persists a block into the repository
-func (r DiskBlockRepository) SaveBlock(bytes []byte, hash string) error {
-	/*bytes, err := json.Marshal(block)
-	if err != nil {
-		log.Println(fmt.Sprintf("Error marshalling file : %v", err))
-		return err
-	}*/
+func (r DiskBlockRepository) GetDataDirectory(hash string) (string, error) {
 
-	err := ioutil.WriteFile(filepath.Join(r.path, hash+r.extension), bytes, 0644)
+	dataDirectory := filepath.Join(r.path, string(hash[0]), string(hash[1]))
+
+	// Does the directory aleady exist?
+	exists, _ := directoryExists(dataDirectory)
+	if exists {
+		return dataDirectory, nil
+	}
+
+	dataDirectory = filepath.Join(r.path, string(hash[0]))
+	err := os.Mkdir(dataDirectory, 0777)
+	if err != nil && !os.IsExist(err) {
+		return "", errors.New("Unable to create directory: " + err.Error())
+	}
+
+	dataDirectory = filepath.Join(r.path, string(hash[0]), string(hash[1]))
+	err = os.Mkdir(dataDirectory, 0777)
+	if err != nil && !os.IsExist(err) {
+		return "", errors.New("Unable to create directory: " + err.Error())
+	}
+
+	return dataDirectory, nil
+}
+
+func directoryExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// Save persists a block into the repository
+func (r DiskBlockRepository) SaveBlock(bytes []byte, blockHash string) error {
+
+	dataDirectory, _ := r.GetDataDirectory(blockHash)
+
+	err := ioutil.WriteFile(filepath.Join(dataDirectory, blockHash+r.extension), bytes, 0644)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error writing file : %v", err))
 		return err
@@ -221,26 +258,30 @@ func (r DiskBlockRepository) SaveBlock(bytes []byte, hash string) error {
 // Get a block from the repository
 func (r DiskBlockRepository) GetBlock(blockHash string) ([]byte, error) {
 
-	readBytes, err := ioutil.ReadFile(filepath.Join(r.path, blockHash+r.extension))
+	dataDirectory, _ := r.GetDataDirectory(blockHash)
+
+	readBytes, err := ioutil.ReadFile(filepath.Join(dataDirectory, blockHash+r.extension))
 	if err != nil {
 		log.Println(fmt.Sprintf("Error reading block : %v", err))
 		return nil, err
 	}
-
-	// json.Unmarshal(readBytes, &block)
 
 	return readBytes, nil
 }
 
 // DeleteBlock - Deletes a block of data
 func (r DiskBlockRepository) DeleteBlock(blockHash string) error {
+	dataDirectory, _ := r.GetDataDirectory(blockHash)
+
 	// Delete the file from disk...
-	return os.Remove(filepath.Join(r.path, blockHash+r.extension))
+	return os.Remove(filepath.Join(dataDirectory, blockHash+r.extension))
 }
 
 // Check to see if a block exists
 func (r DiskBlockRepository) CheckBlockExists(blockHash string) (bool, error) {
-	_, err := os.Stat(filepath.Join(r.path, blockHash+r.extension))
+	dataDirectory, _ := r.GetDataDirectory(blockHash)
+
+	_, err := os.Stat(filepath.Join(dataDirectory, blockHash+r.extension))
 	if err == nil {
 		return true, nil
 	}
