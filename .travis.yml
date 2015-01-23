@@ -12,7 +12,7 @@ install:
 script: 
   - go build github.com/Inflatablewoman/blocker
   - go test -v github.com/Inflatablewoman/blocker/blocks
-  - go test -v -covermode=count -coverprofile=coverage.out github.com/Inflatablewoman/blocker
+  - go test -v -covermode=count -coverprofile=coverage.out github.com/Inflatablewoman/blocker/blocks
   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 
 notifications:
