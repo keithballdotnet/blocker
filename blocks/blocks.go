@@ -92,7 +92,7 @@ func SetUpRepositories() {
 	case "cb":
 		BlockStore, err = NewCouchBaseBlockRepository()
 	case "s3":
-		panic("Not Implemented")
+		BlockStore, err = NewS3BlockRepository()
 	default:
 		// Default to storing to disk...
 		BlockStore, err = NewDiskBlockRepository()

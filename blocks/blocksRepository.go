@@ -12,6 +12,8 @@ import (
 	"github.com/Inflatablewoman/azure"
 	"github.com/couchbase/gomemcached/client"
 	"github.com/couchbaselabs/go-couchbase"
+	"github.com/mitchellh/goamz/aws"
+	"github.com/mitchellh/goamz/s3"
 )
 
 // BlockRepository is the interface for saving blocks to disk
@@ -20,6 +22,86 @@ type BlockRepository interface {
 	GetBlock(blockHash string) ([]byte, error)
 	CheckBlockExists(blockHash string) (bool, error)
 	DeleteBlock(blockHash string) error
+}
+
+/* S3 Block Provider */
+
+type S3BlockRepository struct {
+	s3Store *s3.S3
+	bucket  *s3.Bucket
+}
+
+// NewAzureBlockRepository
+func NewS3BlockRepository() (S3BlockRepository, error) {
+
+	key := os.Getenv("BLOCKER_S3_KEY")
+	secret := os.Getenv("BLOCKER_S3_SECRET")
+	bucketName := os.Getenv("BLOCKER_S3_BUCKET")
+
+	if key == "" || secret == "" || bucketName == "" {
+		panic("Enivronmental Variable: BLOCKER_S3_KEY or BLOCKER_S3_SECRET or BLOCKER_S3_BUCKET are empty!  You must set these values when using S3 storage!")
+	}
+
+	auth := aws.Auth{key, secret, ""}
+
+	s3Store := s3.New(auth, aws.EUWest)
+	// Create bucket...
+	bucket := s3Store.Bucket(bucketName)
+
+	// Presume bucket is created outside of this application
+	/*err := bucket.PutBucket(s3.Private)
+	if err != nil {
+		log.Printf("Error creating bucket: %v", err)
+	}*/
+
+	s3BlockRepo := S3BlockRepository{s3Store, bucket}
+
+	return s3BlockRepo, nil
+}
+
+func (r S3BlockRepository) SaveBlock(data []byte, blockHash string) error {
+
+	// TODO:  Work out if there was an error here...
+	err := r.bucket.Put(blockHash+".blk", data, "application/octet-stream", s3.Private)
+	if err != nil {
+		log.Printf("Error upload data: %v", err)
+	}
+
+	// log.Printf("Upload hash: %s Code: %v Size: %v", blockHash+".blk", res, len(data))
+
+	return err
+}
+
+// Get a block from the repository
+func (r S3BlockRepository) GetBlock(blockHash string) ([]byte, error) {
+
+	// log.Printf("Download hash: %s Code: %v Size: %v", blockHash, res.StatusCode, len(contents))
+
+	return r.bucket.Get(blockHash + ".blk")
+}
+
+// DeleteBlock - Deletes a block of data
+func (r S3BlockRepository) DeleteBlock(blockHash string) error {
+
+	return r.bucket.Del(blockHash + ".blk")
+}
+
+// Check to see if a block exists
+func (r S3BlockRepository) CheckBlockExists(blockHash string) (bool, error) {
+
+	res, err := r.bucket.Head(blockHash + ".blk")
+
+	if err != nil {
+		log.Printf("Get blob props err: %s blobs: %v", err, res)
+		return false, err
+	}
+
+	if res.StatusCode == 200 {
+		return true, nil
+	}
+
+	// Block not present
+	return false, nil
 }
 
 /* Azure BLOCK Provider */
