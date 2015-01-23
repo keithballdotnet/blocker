@@ -6,13 +6,13 @@ go:
 install:
   - go get -v github.com/Inflatablewoman/blocker
   - go get gopkg.in/check.v1
-  - go get code.google.com/p/go.tools/cmd/cover
+  - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
 
 script: 
   - go build github.com/Inflatablewoman/blocker
   - go test -v github.com/Inflatablewoman/blocker/blocks
-  - go test -v -covermode=count -coverprofile=coverage.out
+  - go test -v -covermode=count -coverprofile=coverage.out github.com/Inflatablewoman/blocker
   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken rPPbY8OcTpfS58eJqMaxgq724pLIOEbg0
 
 notifications:
