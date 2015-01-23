@@ -17,12 +17,12 @@ var (
 // Start a HTTP listener
 func Start() {
 	mux := tigertonic.NewTrieServeMux()
-	mux.Handle("GET", "/api/blocker", tigertonic.Timed(tigertonic.Marshaled(GetHello), "GetHelloHandler", nil))
-	mux.Handle("GET", "/api/blocker/{itemID}", tigertonic.Timed(NewFileDownloadHandler(), "FileDownloadHandler", nil))
-	mux.Handle("DELETE", "/api/blocker/{itemID}", tigertonic.Timed(tigertonic.Marshaled(DeleteHandler), "DeleteHandler", nil))
-	mux.Handle("COPY", "/api/blocker/{itemID}", tigertonic.Timed(tigertonic.Marshaled(CopyHandler), "CopyHandler", nil))
-	mux.Handle("POST", "/api/blocker", tigertonic.Timed(NewPostMultipartUploadHandler(), "PostMultipartUploadHandler", nil))
-	mux.Handle("PUT", "/api/blocker", tigertonic.Timed(NewRawUploadHandler(), "RawUploadHandler", nil))
+	mux.Handle("GET", "/api/v1/blocker", tigertonic.Timed(tigertonic.Marshaled(GetHello), "GetHelloHandler", nil))
+	mux.Handle("GET", "/api/v1/blocker/{itemID}", tigertonic.Timed(NewFileDownloadHandler(), "FileDownloadHandler", nil))
+	mux.Handle("DELETE", "/api/v1/blocker/{itemID}", tigertonic.Timed(tigertonic.Marshaled(DeleteHandler), "DeleteHandler", nil))
+	mux.Handle("COPY", "/api/v1/blocker/{itemID}", tigertonic.Timed(tigertonic.Marshaled(CopyHandler), "CopyHandler", nil))
+	mux.Handle("POST", "/api/v1/blocker", tigertonic.Timed(NewPostMultipartUploadHandler(), "PostMultipartUploadHandler", nil))
+	mux.Handle("PUT", "/api/v1/blocker", tigertonic.Timed(NewRawUploadHandler(), "RawUploadHandler", nil))
 	// Log to Console
 	server := tigertonic.NewServer(":8010", tigertonic.ApacheLogged(mux))
 	if *certKey == "" || *cert == "" {

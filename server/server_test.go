@@ -28,7 +28,7 @@ var baseURL = "http://localhost:8010"
 // const inputFile = "testdata/tempest.txt"
 
 func (s *ServerSuite) TestGetHello(c *C) {
-	response, err := http.Get(baseURL + "/api/blocker")
+	response, err := http.Get(baseURL + "/api/v1/blocker")
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
@@ -54,7 +54,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	defer sourceFile.Close()
 
-	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/blocker", baseURL), sourceFile)
+	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), sourceFile)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	filename := inputFileInfo.Name()
@@ -83,7 +83,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	c.Assert(blockedFile.Length == length, IsTrue)
 
 	// Now try to get the data we uploaded
-	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID))
+	response, err = http.Get(fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Clean up any old file
@@ -105,7 +105,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
 
 	// Copy the file
-	request, err = http.NewRequest("COPY", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	request, err = http.NewRequest("COPY", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
@@ -122,7 +122,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	c.Assert(copiedBlockFile.ID != blockedFile.ID, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Now try to get the data we copied
-	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, copiedBlockFile.ID))
+	response, err = http.Get(fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, copiedBlockFile.ID))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Clean up any old file
@@ -145,13 +145,13 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
 
 	// Delete the original upload
-	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 
 	// Delete the copied upload
-	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, copiedBlockFile.ID), nil)
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, copiedBlockFile.ID), nil)
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
@@ -164,7 +164,7 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	uploadContent := "hello world"
 	contentReader := strings.NewReader(uploadContent)
 
-	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/blocker", baseURL), contentReader)
+	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), contentReader)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	filename := "helloWorld.txt"
@@ -193,7 +193,7 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	c.Assert(blockedFile.Length == length, IsTrue)
 
 	// Now try to get the data we uploaded
-	response, err = http.Get(fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID))
+	response, err = http.Get(fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	defer response.Body.Close()
@@ -203,7 +203,7 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	receivedContent := string(body)
 	c.Assert(receivedContent == uploadContent, IsTrue, Commentf("Content was: %v", receivedContent))
 
-	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/blocker/%s", baseURL, blockedFile.ID), nil)
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
