@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"code.google.com/p/go-uuid/uuid"
@@ -14,22 +15,23 @@ import (
 )
 
 // This is a form used to link the File to the Block without needing to load the full data from the database
-type FileBlock struct {
+type Block struct {
 	BlockPosition int    `json:"position"`
 	Hash          string `json:"hash"`
 }
 
 // File is a representation of a blocks together to form a file
 type BlockedFile struct {
-	ID        string      `json:"id"`
-	FileHash  string      `json:"fileHash"`
-	Length    int64       `json:"length"`
-	BlockList []FileBlock `json:"blocks"`
+	ID        string  `json:"id"`
+	FileHash  string  `json:"fileHash"`
+	Length    int64   `json:"length"`
+	BlockList []Block `json:"blocks"`
 }
 
-// FileBlockInfo is used to maintain information about file blocks
-type FileBlockInfo struct {
+// BlockInfo is used to maintain information about file blocks
+type BlockInfo struct {
 	Hash      string    `json:"hash"`
+	StoreID   string    `json:"storeid"`
 	UseCount  int64     `json:"usecount"`
 	Created   time.Time `json:"created"`
 	LastUsage time.Time `json:"lastUsed"`
@@ -63,7 +65,7 @@ var BlockedFileStore BlockedFileRepository
 var BlockStore BlockRepository
 
 // fileBlockInfoRepository for FileBlockInfo objects
-var FileBlockInfoStore FileBlockInfoRepository
+var BlockInfoStore BlockInfoRepository
 
 // StorageProviderName is the name of the selected storage provider
 var StorageProviderName string
@@ -78,7 +80,7 @@ func SetUpRepositories() {
 	}
 
 	// Create persistent store for FileBlockInfo
-	FileBlockInfoStore, err = NewCouchbaseFileBlockInfoRepository()
+	BlockInfoStore, err = NewCouchbaseBlockInfoRepository()
 	if err != nil {
 		panic(err)
 	}
@@ -139,7 +141,7 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 	// Set the BlockSize
 	data := make([]byte, BlockSize)
 
-	fileblocks := make([]FileBlock, 0)
+	fileblocks := make([]Block, 0)
 
 	var blockCount int
 	var fileLength int64
@@ -158,7 +160,7 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 
 		// Get FileBlockInfo (if any)
 		blockExists := false
-		fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(hash)
+		fileBlockInfo, err := BlockInfoStore.GetBlockInfo(hash)
 		if err == nil {
 			blockExists = true
 		}
@@ -185,20 +187,25 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 				}
 			}
 
+			// Get a 50byte secret to store the file under
+			storeID := strings.ToLower(crypto.RandomSecret(40))
+
+			log.Printf("Saving Hash: %v StoreID: %v", hash, storeID)
+
 			// Commit block to repository
-			BlockStore.SaveBlock(storeData, hash)
+			BlockStore.SaveBlock(storeData, storeID)
 
 			// Save FileBlockInfo for hash
 
-			FileBlockInfoStore.SaveFileBlockInfo(FileBlockInfo{Hash: hash, UseCount: 1, Created: now, LastUsage: now})
+			BlockInfoStore.SaveBlockInfo(BlockInfo{Hash: hash, StoreID: storeID, UseCount: 1, Created: now, LastUsage: now})
 		} else {
 			// Register that we have been used again in another file
 			fileBlockInfo.LastUsage = now
 			fileBlockInfo.UseCount = fileBlockInfo.UseCount + 1
-			FileBlockInfoStore.SaveFileBlockInfo(*fileBlockInfo)
+			BlockInfoStore.SaveBlockInfo(*fileBlockInfo)
 		}
 
-		fileblock := FileBlock{blockCount, hash}
+		fileblock := Block{blockCount, hash}
 
 		// Add the file block to the list of blocks
 		fileblocks = append(fileblocks, fileblock)
@@ -221,23 +228,23 @@ func DeleteBlockedFile(blockFileID string) error {
 
 	for _, fileBlock := range blockedFile.BlockList {
 		// Store in the FileBlockInfo that we have been used...
-		fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(fileBlock.Hash)
+		blockInfo, err := BlockInfoStore.GetBlockInfo(fileBlock.Hash)
 		if err == nil {
-			fileBlockInfo.UseCount = fileBlockInfo.UseCount - 1
+			blockInfo.UseCount = blockInfo.UseCount - 1
 
 			// Is the file block in use anymore?
-			if fileBlockInfo.UseCount < 1 {
+			if blockInfo.UseCount < 1 {
 
-				log.Printf("Deleting Block: %s", fileBlock.Hash)
+				log.Printf("Deleting Hash: %v StoreID: %v", fileBlock.Hash, blockInfo.StoreID)
 
 				// Delete from storage provider
-				err = BlockStore.DeleteBlock(fileBlock.Hash)
+				err = BlockStore.DeleteBlock(blockInfo.StoreID)
 				if err != nil {
 					return err
 				}
 
 				// Delete last instance of FileBlockInfo
-				err = FileBlockInfoStore.DeleteFileBlockInfo(fileBlock.Hash)
+				err = BlockInfoStore.DeleteBlockInfo(fileBlock.Hash)
 				if err != nil {
 					return err
 				}
@@ -246,7 +253,7 @@ func DeleteBlockedFile(blockFileID string) error {
 				crypto.DeleteAesSecret(fileBlock.Hash)
 			} else {
 				// Save that we are using the block one less time.
-				FileBlockInfoStore.SaveFileBlockInfo(*fileBlockInfo)
+				BlockInfoStore.SaveBlockInfo(*blockInfo)
 			}
 
 		}
@@ -274,12 +281,12 @@ func CopyBlockedFile(blockFileID string) (BlockedFile, error) {
 	// Update the FileBlockInfo for all the FileBlocks to maintain the use count...
 	for _, fileBlock := range blockedFile.BlockList {
 		// Store in the FileBlockInfo that we have been used...
-		fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(fileBlock.Hash)
+		blockInfo, err := BlockInfoStore.GetBlockInfo(fileBlock.Hash)
 		if err == nil {
-			fileBlockInfo.LastUsage = time.Now().UTC()
-			fileBlockInfo.UseCount = fileBlockInfo.UseCount + 1
+			blockInfo.LastUsage = time.Now().UTC()
+			blockInfo.UseCount = blockInfo.UseCount + 1
 			// Save that we are using the block one more time.
-			FileBlockInfoStore.SaveFileBlockInfo(*fileBlockInfo)
+			BlockInfoStore.SaveBlockInfo(*blockInfo)
 		}
 	}
 
@@ -301,7 +308,15 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 
 	for _, fileBlock := range blockedFile.BlockList {
 
-		bytes, err := BlockStore.GetBlock(fileBlock.Hash)
+		blockInfo, err := BlockInfoStore.GetBlockInfo(fileBlock.Hash)
+		if err != nil {
+			log.Println("Error: " + err.Error())
+			return buffer, err
+		}
+
+		log.Printf("Getting Hash: %v StoreID: %v", fileBlock.Hash, blockInfo.StoreID)
+
+		bytes, err := BlockStore.GetBlock(blockInfo.StoreID)
 		if err != nil {
 			log.Println("Error: " + err.Error())
 			return buffer, err
@@ -327,11 +342,8 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 		}
 
 		// Store in the FileBlockInfo that we have been used...
-		fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(fileBlock.Hash)
-		if err == nil {
-			fileBlockInfo.LastUsage = time.Now().UTC()
-			FileBlockInfoStore.SaveFileBlockInfo(*fileBlockInfo)
-		}
+		blockInfo.LastUsage = time.Now().UTC()
+		BlockInfoStore.SaveBlockInfo(*blockInfo)
 
 		// Write data to buffer
 		buffer.Write(storeData)

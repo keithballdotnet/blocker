@@ -376,22 +376,22 @@ func (r DiskBlockRepository) CheckBlockExists(blockHash string) (bool, error) {
 /* FILEBlOCKINFO REPO */
 
 // FileBlockInfoRepository inteface for FileBlockInfo storage
-type FileBlockInfoRepository interface {
-	SaveFileBlockInfo(fileBlockInfo FileBlockInfo) error
-	GetFileBlockInfo(hash string) (*FileBlockInfo, error)
-	DeleteFileBlockInfo(hash string) error
+type BlockInfoRepository interface {
+	SaveBlockInfo(blockInfo BlockInfo) error
+	GetBlockInfo(hash string) (*BlockInfo, error)
+	DeleteBlockInfo(hash string) error
 }
 
-var cbFileBlockInfoPrefix = "blocker:fbi:"
+var cbBlockInfoPrefix = "blocker:bi:"
 
 // CouchbaseFileBlockInfoRepository is the couch base implementation of the FileBlockInfoRepository
-type CouchbaseFileBlockInfoRepository struct {
+type CouchbaseBlockInfoRepository struct {
 	bucket         *couchbase.Bucket
-	InMemoryBucket map[string]*FileBlockInfo
+	InMemoryBucket map[string]*BlockInfo
 }
 
 // NewBlockedFileRepository
-func NewCouchbaseFileBlockInfoRepository() (CouchbaseFileBlockInfoRepository, error) {
+func NewCouchbaseBlockInfoRepository() (CouchbaseBlockInfoRepository, error) {
 	couchbaseEnvAddress := os.Getenv("CB_HOST")
 
 	couchbaseAddress := "http://localhost:8091"
@@ -403,15 +403,15 @@ func NewCouchbaseFileBlockInfoRepository() (CouchbaseFileBlockInfoRepository, er
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting bucket:  %v", err))
 		// NOTE:  I want this to run without a couchbase installation, so in event of error use a in memory store
-		return CouchbaseFileBlockInfoRepository{nil, make(map[string]*FileBlockInfo)}, nil
+		return CouchbaseBlockInfoRepository{nil, make(map[string]*BlockInfo)}, nil
 	}
 
 	log.Printf("NewCouchbaseFileBlockInfoRepository: Connected to Couchbase Server: %s\n", couchbaseAddress)
 
-	return CouchbaseFileBlockInfoRepository{bucket, nil}, nil
+	return CouchbaseBlockInfoRepository{bucket, nil}, nil
 }
 
-func (r CouchbaseFileBlockInfoRepository) DeleteFileBlockInfo(hash string) error {
+func (r CouchbaseBlockInfoRepository) DeleteBlockInfo(hash string) error {
 	if hash == "" {
 		return errors.New("No Block File ID passed")
 	}
@@ -425,7 +425,7 @@ func (r CouchbaseFileBlockInfoRepository) DeleteFileBlockInfo(hash string) error
 		return errors.New("Not found!")
 	}
 
-	if err := r.bucket.Delete(cbFileBlockInfoPrefix + hash); err != nil {
+	if err := r.bucket.Delete(cbBlockInfoPrefix + hash); err != nil {
 		return err
 	}
 
@@ -433,17 +433,17 @@ func (r CouchbaseFileBlockInfoRepository) DeleteFileBlockInfo(hash string) error
 }
 
 // Save persists a BlockedFile into the repository
-func (r CouchbaseFileBlockInfoRepository) SaveFileBlockInfo(fileBlockInfo FileBlockInfo) error {
+func (r CouchbaseBlockInfoRepository) SaveBlockInfo(blockInfo BlockInfo) error {
 	if r.bucket == nil {
-		r.InMemoryBucket[fileBlockInfo.Hash] = &fileBlockInfo
+		r.InMemoryBucket[blockInfo.Hash] = &blockInfo
 		return nil
 	}
 
-	return r.bucket.Set(cbFileBlockInfoPrefix+fileBlockInfo.Hash, 0, fileBlockInfo)
+	return r.bucket.Set(cbBlockInfoPrefix+blockInfo.Hash, 0, blockInfo)
 }
 
 // Get a BlockedFile from the repository
-func (r CouchbaseFileBlockInfoRepository) GetFileBlockInfo(hash string) (*FileBlockInfo, error) {
+func (r CouchbaseBlockInfoRepository) GetBlockInfo(hash string) (*BlockInfo, error) {
 	if hash == "" {
 		return nil, errors.New("No hash passed")
 	}
@@ -453,16 +453,16 @@ func (r CouchbaseFileBlockInfoRepository) GetFileBlockInfo(hash string) (*FileBl
 			return val, nil
 		}
 
-		return &FileBlockInfo{}, errors.New("Not found!")
+		return &BlockInfo{}, errors.New("Not found!")
 	}
 
-	var fileBlockInfo FileBlockInfo
+	var blockInfo BlockInfo
 
-	if err := r.bucket.Get(cbFileBlockInfoPrefix+hash, &fileBlockInfo); err != nil {
+	if err := r.bucket.Get(cbBlockInfoPrefix+hash, &blockInfo); err != nil {
 		return nil, err
 	}
 
-	return &fileBlockInfo, nil
+	return &blockInfo, nil
 }
 
 // BlockedFileRepository : a Couchbase Server repository

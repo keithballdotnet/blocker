@@ -27,7 +27,7 @@ func (s *CryptoSuite) TestAesCrypto(c *C) {
 
 	fmt.Println("bytes to encrypt: " + string(bytesToEncrypt))
 
-	encryptedBytes, err := AesCfbEncrypt(bytesToEncrypt)
+	encryptedBytes, err := AesCfbEncrypt(bytesToEncrypt, "testhash")
 
 	if err != nil {
 		fmt.Println("Got error: " + err.Error())
@@ -38,7 +38,7 @@ func (s *CryptoSuite) TestAesCrypto(c *C) {
 
 	fmt.Println("encrypted bytes: " + string(encryptedBytes))
 
-	unencryptedBytes, err := AesCfbDecrypt(encryptedBytes)
+	unencryptedBytes, err := AesCfbDecrypt(encryptedBytes, "testhash")
 
 	if err != nil {
 		fmt.Println("Got error: " + err.Error())

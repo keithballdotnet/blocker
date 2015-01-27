@@ -17,11 +17,11 @@ A block based filesystem microservice written in go
 - Files where blocks have not changed reference old blocks
 - A REST interface for manipulating blocks
 - Uses couchbase for BlockedFiles repository
-- Possible to specify mulitple Storage Providers.
-   + nfs - Local mount disk storage
+- Possible to specify a backend Storage provider
+   + nfs - Local mount disk storage (GlusterFS could be used)
    + couchbase - Couchbase Raw Binary storage
    + azure - Azure Simple Storage
-   + s3 - Planned s3 storage
+   + s3 - s3 storage
 
 ##REST API 
 
@@ -41,7 +41,7 @@ PUT        | /api/blocker   | Uploads a file and returns a newly created Blocked
 
 ##TODO
 
-- Move encryption from TOY format to be a bit more secure
+- Store Symmetric keys in a different location from that of the master key
 - The store should not use the hash as the ID as this would then be a predictable location for a file.  A problem?
 - Permissions
 - Authentication

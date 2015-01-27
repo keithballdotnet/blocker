@@ -68,7 +68,11 @@ func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
 	firstBlockFileBlockHash := bibleBlockFile.BlockList[0].Hash
 
 	// Check the block store has the data...
-	blockExists, _ := BlockStore.CheckBlockExists(firstBlockFileBlockHash)
+	blockInfo, err := BlockInfoStore.GetBlockInfo(firstBlockFileBlockHash)
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	blockExists, _ := BlockStore.CheckBlockExists(blockInfo.StoreID)
 	c.Assert(blockExists, IsTrue)
 
 	// Block the file again
@@ -110,7 +114,7 @@ func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
 	// Check that block used in first block is the same
 	c.Assert(firstBlockFileBlockHash == thirdBlockFileBlockHash, IsTrue)
 
-	fileBlockInfo, err := FileBlockInfoStore.GetFileBlockInfo(thirdBlockFileBlockHash)
+	fileBlockInfo, err := BlockInfoStore.GetBlockInfo(thirdBlockFileBlockHash)
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
@@ -135,7 +139,7 @@ func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
 	c.Assert(err == nil, IsFalse)
 
 	// Check the use count
-	fileBlockInfo, err = FileBlockInfoStore.GetFileBlockInfo(thirdBlockFileBlockHash)
+	fileBlockInfo, err = BlockInfoStore.GetBlockInfo(thirdBlockFileBlockHash)
 
 	// No error
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
@@ -166,7 +170,7 @@ func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
 	// There should now be no reference to the data in any repository
 
 	// Check the use count
-	_, err = FileBlockInfoStore.GetFileBlockInfo(thirdBlockFileBlockHash)
+	_, err = BlockInfoStore.GetBlockInfo(thirdBlockFileBlockHash)
 
 	// There should be an error
 	c.Assert(err == nil, IsFalse)
@@ -299,7 +303,7 @@ func (s *BlockSuite) TestTempest(c *C) {
 	outputFileInfo, _ := os.Stat(outputFile)
 
 	// Check we wrote the full file size
-	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue)
+	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue, Commentf("Expected Size: %v Resulting Size: %v", inputFileInfo.Size(), outputFileInfo.Size()))
 
 	err = DeleteBlockedFile(blockFile.ID)
 	// No error
