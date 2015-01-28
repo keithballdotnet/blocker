@@ -3,10 +3,13 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
@@ -255,4 +258,12 @@ func AesCfbEncrypt(bytesToEncrypt []byte, hash string) ([]byte, error) {
 	// (i.e. by using crypto/hmac) as well as being encrypted in order to
 	// be secure.
 	return ciphertext, nil
+}
+
+// GetHmac256 will generate a HMAC hash encoded to base64
+func GetHmac256(message string, secret string) string {
+	key := []byte(secret)
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(message))
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }

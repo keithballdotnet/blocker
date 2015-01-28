@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Inflatablewoman/blocker/blocks"
+	"github.com/Inflatablewoman/blocker/crypto"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,12 +17,36 @@ func GetHello(u *url.URL, h http.Header, _ interface{}) (int, http.Header, strin
 	log.Println("Got GET hello request")
 
 	// Really simple hello
-	return http.StatusOK, nil, "hello", nil
+	return http.StatusOK, nil, "Server: Blocker", nil
+}
+
+// AuthorizeRequest - Will check the request authorization
+func AuthorizeRequest(method string, u *url.URL, h http.Header) bool {
+
+	date := h.Get("x-blocker-date")
+	resource := u.Path
+	authRequestKey := fmt.Sprintf("%s\n%s\n%s", method, date, resource)
+
+	authorization := h.Get("Authorization")
+
+	hmac := crypto.GetHmac256(authRequestKey, SharedKey)
+
+	if authorization != hmac {
+		log.Printf("Authorization FAILED: Auth: %s HMAC: %s RequestKey: \n%s", authorization, hmac, authRequestKey)
+	}
+
+	// Was the passed value the same as we expected?
+	return authorization == hmac
 }
 
 // CopyHandler - The REST endpoint for deleting a BlockedFile
 func CopyHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, *blocks.BlockedFile, error) {
 	log.Println("Got COPY block request")
+
+	// Authoritze the request
+	if !AuthorizeRequest("COPY", u, h) {
+		return http.StatusUnauthorized, nil, nil, nil
+	}
 
 	itemID := u.Query().Get("itemID")
 
@@ -35,8 +60,13 @@ func CopyHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, *b
 }
 
 // DeleteHandler - The REST endpoint for deleting a BlockedFile
-func DeleteHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, bool, error) {
+func DeleteHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, interface{}, error) {
 	log.Println("Got DELETE block request")
+
+	// Authoritze the request
+	if !AuthorizeRequest("DELETE", u, h) {
+		return http.StatusUnauthorized, nil, nil, nil
+	}
 
 	itemID := u.Query().Get("itemID")
 
@@ -46,7 +76,7 @@ func DeleteHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, 
 	}
 
 	// All good!
-	return http.StatusOK, nil, true, nil
+	return http.StatusOK, nil, nil, nil
 }
 
 // RawUploadHandler handles PUT operations
@@ -60,8 +90,11 @@ func NewRawUploadHandler() RawUploadHandler {
 func (handler RawUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Got PUT upload request")
 
-	// contentType := r.Header["Content-Type"][0]
-	// fileName := r.Header["Filename"][0]
+	// Authoritze the request
+	if !AuthorizeRequest("PUT", r.URL, r.Header) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	BlockAndRespond(w, r.Body)
 }
@@ -75,6 +108,12 @@ func NewPostMultipartUploadHandler() PostMultipartUploadHandler {
 
 func (handler PostMultipartUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Got POST upload request")
+
+	// Authoritze the request
+	if !AuthorizeRequest("POST", r.URL, r.Header) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	err := r.ParseMultipartForm(100000)
 	if err != nil {
@@ -169,6 +208,12 @@ func NewFileDownloadHandler() FileDownloadHandler {
 func (handler FileDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Got GET file request")
 
+	// Authoritze the request
+	if !AuthorizeRequest("GET", r.URL, r.Header) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	itemID := r.URL.Query().Get("itemID")
 	// fmt.Fprintf(w, "Going to get \"%v\"\n", itemID)
 
@@ -199,11 +244,6 @@ func checkClose(c io.Closer, err *error) {
 }
 
 func HandleErrorWithResponse(w http.ResponseWriter, error error) {
-	/*if util.IsNotFoundError(error) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}*/
-
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintln(w, error)
 	return

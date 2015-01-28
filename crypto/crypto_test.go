@@ -102,3 +102,32 @@ func (s *CryptoSuite) TestGenerateKey(c *C) {
 	c.Assert(err == nil, IsTrue)
 	c.Assert(keyInfo.Size() > 0, IsTrue)
 }
+
+func (s *CryptoSuite) TestHMACKey(c *C) {
+
+	expectedHmac := "RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk="
+
+	// The secret key
+	secretKey := "e7yflbeeid26rredmwtbiyzxijzak6altcnrsi4yol2f5sexbgdwevlpgosfoeyy"
+	method := "COPY"
+	//date := time.Now().UTC().Format(time.RFC1123) // UTC time
+	//fmt.Printf("Now: %s", date)
+	date := "Wed, 28 Jan 2015 10:42:13 UTC"
+	resource := "/api/v1/blocker/6f90d707-3b6a-4321-b32c-3c1d37915c1b"
+
+	// Create auth request key
+	authRequestKey := fmt.Sprintf("%s\n%s\n%s", method, date, resource)
+
+	hmac := GetHmac256(authRequestKey, secretKey)
+
+	// Test positive.
+	c.Assert(expectedHmac == hmac, IsTrue, Commentf("HMAC wrong: %v Got Key %s", expectedHmac, hmac))
+
+	// Test negative.  (Resource and Data in wrong order)
+	authRequestKey = fmt.Sprintf("%s\n%s\n%s", method, resource, date)
+
+	hmac = GetHmac256(authRequestKey, secretKey)
+
+	// Test positive.
+	c.Assert(expectedHmac != hmac, IsTrue, Commentf("HMAC should be differnt: %v Got Key %s", expectedHmac, hmac))
+}

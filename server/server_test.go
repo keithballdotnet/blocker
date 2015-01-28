@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/Inflatablewoman/blocker/blocks"
+	"github.com/Inflatablewoman/blocker/crypto"
 	. "github.com/Inflatablewoman/blocker/gocheck2"
 	. "gopkg.in/check.v1"
 	"io"
@@ -13,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Test(t *testing.T) {
@@ -23,9 +26,38 @@ type ServerSuite struct{}
 
 var _ = Suite(&ServerSuite{})
 
-var baseURL = "http://localhost:8010"
+var baseURL = "https://localhost:8010"
+
+var testAuthKey = "e7yflbeeid26rredmwtbiyzxijzak6altcnrsi4yol2f5sexbgdwevlpgosfoeyy"
 
 // const inputFile = "testdata/tempest.txt"
+func (s *ServerSuite) TestSetupAuthenticationKey(c *C) {
+	filepath.Join(os.TempDir(), "blocker")
+	defaultAuthDir := filepath.Join(os.TempDir(), "blocker")
+	err := os.Mkdir(defaultAuthDir, 0777)
+	if err != nil && !os.IsExist(err) {
+		c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	}
+
+	keyPath := filepath.Join(defaultAuthDir, "blockertest.key")
+
+	testAuthKey := "e7yflbeeid26rredmwtbiyzxijzak6altcnrsi4yol2f5sexbgdwevlpgosfoeyy"
+	// Write key to key file
+	err = ioutil.WriteFile(keyPath, []byte(testAuthKey), 0644)
+
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Set the key path
+	flag.Set("sharedKey", keyPath)
+
+	// Load the key
+	SetupAuthenticationKey()
+
+	c.Assert(SharedKey == testAuthKey, IsTrue, Commentf("Wanted key: %v Got Key", SharedKey, testAuthKey))
+
+	// Clean up the key file
+	os.Remove(keyPath)
+}
 
 func (s *ServerSuite) TestGetHello(c *C) {
 	response, err := http.Get(baseURL + "/api/v1/blocker")
@@ -39,7 +71,30 @@ func (s *ServerSuite) TestGetHello(c *C) {
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 }
 
+// SetAuth will set blocker auth headers
+func SetAuth(request *http.Request, method string, resource string) *http.Request {
+
+	date := time.Now().UTC().Format(time.RFC1123) // UTC time
+	request.Header.Add("x-blocker-date", date)
+
+	authRequestKey := fmt.Sprintf("%s\n%s\n%s", method, date, resource)
+
+	hmac := crypto.GetHmac256(authRequestKey, SharedKey)
+
+	//fmt.Printf("SharedKey: %s HMAC: %s RequestKey: \n%s\n", SharedKey, hmac, authRequestKey)
+
+	request.Header.Add("Authorization", hmac)
+
+	return request
+}
+
 func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
+
+	// Set the key path  Make sure the default key is loaded.
+	flag.Set("sharedKey", "")
+
+	// Load the key
+	SetupAuthenticationKey()
 
 	// c.Skip("Just for now.  Will skip this.")
 
@@ -57,6 +112,9 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), sourceFile)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
+	// Set auth
+	request = SetAuth(request, "PUT", "/api/v1/blocker")
+
 	filename := inputFileInfo.Name()
 	contentType := "text/plain"
 	length := inputFileInfo.Size()
@@ -66,6 +124,8 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	client := http.Client{}
 
 	response, err := client.Do(request)
+	c.Assert(response.StatusCode == http.StatusCreated, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	defer response.Body.Close()
 
@@ -83,7 +143,13 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	c.Assert(blockedFile.Length == length, IsTrue)
 
 	// Now try to get the data we uploaded
-	response, err = http.Get(fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID))
+	request, err = http.NewRequest("GET", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+	// Set auth
+	request = SetAuth(request, "GET", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
+	// Now try to get the data we copied
+	response, err = client.Do(request)
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Clean up any old file
@@ -106,6 +172,10 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 
 	// Copy the file
 	request, err = http.NewRequest("COPY", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+
+	// Set auth
+	request = SetAuth(request, "COPY", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
+
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
@@ -121,8 +191,13 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 
 	c.Assert(copiedBlockFile.ID != blockedFile.ID, IsTrue, Commentf("Failed with error: %v", err))
 
+	request, err = http.NewRequest("GET", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, copiedBlockFile.ID), nil)
+	// Set auth
+	request = SetAuth(request, "GET", fmt.Sprintf("/api/v1/blocker/%s", copiedBlockFile.ID))
+
 	// Now try to get the data we copied
-	response, err = http.Get(fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, copiedBlockFile.ID))
+	response, err = client.Do(request)
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	// Clean up any old file
@@ -146,25 +221,77 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 
 	// Delete the original upload
 	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+	// Set auth
+	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 
 	// Delete the copied upload
 	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, copiedBlockFile.ID), nil)
+	// Set auth
+	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", copiedBlockFile.ID))
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 
 }
 
-func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
+func (s *ServerSuite) TestAuthFail(c *C) {
+
+	// Set the key path  Make sure the default key is loaded.
+	flag.Set("sharedKey", "")
+
+	// Load the key
+	SetupAuthenticationKey()
 
 	// Upload simple text
 	uploadContent := "hello world"
 	contentReader := strings.NewReader(uploadContent)
 
 	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), contentReader)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Set incorrect method...
+	request = SetAuth(request, "COPY", "/api/v1/blocker")
+	filename := "helloWorld.txt"
+	contentType := "text/plain"
+	request.Header.Add("FileName", filename)
+	request.Header.Add("Content-Type", contentType)
+	client := http.Client{}
+
+	response, err := client.Do(request)
+	c.Assert(response.StatusCode == http.StatusUnauthorized, IsTrue, Commentf("Expected AD got: %v", response.StatusCode))
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	request, err = http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), contentReader)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Set incorrect resource
+	request = SetAuth(request, "PUT", "/api/v1/blocker/block")
+	request.Header.Add("FileName", filename)
+	request.Header.Add("Content-Type", contentType)
+
+	response, err = client.Do(request)
+	c.Assert(response.StatusCode == http.StatusUnauthorized, IsTrue, Commentf("Expected AD got: %v", response.StatusCode))
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+}
+
+func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
+
+	// Set the key path  Make sure the default key is loaded.
+	flag.Set("sharedKey", "")
+
+	// Load the key
+	SetupAuthenticationKey()
+
+	// Upload simple text
+	uploadContent := "hello world"
+	contentReader := strings.NewReader(uploadContent)
+
+	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), contentReader)
+	request = SetAuth(request, "PUT", "/api/v1/blocker")
+
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	filename := "helloWorld.txt"
@@ -176,6 +303,7 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	client := http.Client{}
 
 	response, err := client.Do(request)
+	c.Assert(response.StatusCode == http.StatusCreated, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	defer response.Body.Close()
 
@@ -193,7 +321,10 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	c.Assert(blockedFile.Length == length, IsTrue)
 
 	// Now try to get the data we uploaded
-	response, err = http.Get(fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID))
+	request, err = http.NewRequest("GET", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+	request = SetAuth(request, "GET", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
+	response, err = client.Do(request)
+	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	defer response.Body.Close()
@@ -204,6 +335,7 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	c.Assert(receivedContent == uploadContent, IsTrue, Commentf("Content was: %v", receivedContent))
 
 	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))

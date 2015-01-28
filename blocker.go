@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const AppVersion = "1.0.2"
+const AppVersion = "1.0.3"
 
 func main() {
 
