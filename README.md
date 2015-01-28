@@ -1,4 +1,4 @@
-Blocker 
+Blocker
 =======
 A block based filesystem microservice written in go
 
@@ -23,7 +23,59 @@ A block based filesystem microservice written in go
    + azure - Azure Simple Storage
    + s3 - s3 storage
 
-##REST API 
+##Authorization
+
+Authorization is done via a *Authorization* header sent in a request.  Anonymous requests are not allowed.  To authenticate a request, you must sign the request with the key for the account that is making the request and pass that signature as part of the request.  
+
+Here you can see an example of a Authorization header
+```
+Authorization=RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk=
+```
+
+You construct the signature is built in the following format:
+
+```
+authRequestSig = method + "\n" +
+                 Date + "\n" +
+                 resource
+```
+
+This would result in the following signature to be signed:
+
+```
+COPY\nWed, 28 Jan 2015 10:42:13 UTC\n/api/v1/blocker/6f90d707-3b6a-4321-b32c-3c1d37915c1b
+```
+
+Note that you MUST past the same date value in the request.  Date should be supplied in UTC using RFC1123 format.
+
+```
+x-blocker-date=Wed, 28 Jan 2015 10:42:13 UTC
+```
+
+  The signature must be exactly in the same order and include the new line character.  
+
+Now encode the signature using the [HMAC-SHA256](http://en.wikipedia.org/wiki/Hash-based_message_authentication_code) algorithm using the shared key.
+
+This will result in a key like this:
+```
+RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk="
+```
+
+Example go code to create the signature
+
+```go
+date := time.Now().UTC().Format(time.RFC1123) // UTC time
+request.Header.Add("x-blocker-date", date)
+
+authRequestKey := fmt.Sprintf("%s\n%s\n%s", method, date, resource)
+
+// See package http://golang.org/pkg/crypto/hmac/ on how golang creates hmacs
+hmac := crypto.GetHmac256(authRequestKey, SharedKey)  
+
+request.Header.Add("Authorization", hmac)
+```
+
+##REST API
 
 The REST API interface can be used to perform operations against the Filesystem.  Default location is localhost:8010.
 
@@ -42,6 +94,3 @@ PUT        | /api/blocker   | Uploads a file and returns a newly created Blocked
 ##TODO
 
 - Store Symmetric keys in a different location from that of the master key
-- The store should not use the hash as the ID as this would then be a predictable location for a file.  A problem?
-- Permissions
-- Authentication
