@@ -181,7 +181,7 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 
 			// Encrypt the data
 			if UseEncryption {
-				storeData, err = crypto.AesCfbEncrypt(storeData, hash)
+				storeData, err = crypto.PGPEncrypt(storeData)
 				if err != nil {
 					return BlockedFile{}, err
 				}
@@ -326,7 +326,7 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 
 		// Decrypt the data
 		if UseEncryption {
-			storeData, err = crypto.AesCfbDecrypt(storeData, fileBlock.Hash)
+			storeData, err = crypto.PGPDecrypt(storeData)
 			if err != nil {
 				log.Println("Error: " + err.Error())
 				return buffer, err

@@ -2,9 +2,11 @@ package blocks
 
 import (
 	"fmt"
+	"github.com/Inflatablewoman/blocker/crypto"
 	. "github.com/Inflatablewoman/blocker/gocheck2"
 	. "gopkg.in/check.v1"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -28,13 +30,31 @@ const changedOutputFileName = "tempest_changed.txt"
 const liteIdeInFile = "testdata/liteidex23.2.linux-32.tar.bz2"
 const liteIdeoutFile = "liteidex23.2.linux-32.tar.bz2"
 
+// Path to the certificate
+var publicPath = filepath.Join(os.TempDir(), "blocker", "public.pem")
+
+// Path to the private key
+var privatePath = filepath.Join(os.TempDir(), "blocker", "private.pem")
+
 func (s *BlockSuite) SetUpSuite(c *C) {
 	// Ensure string is to lower
 	StorageProviderName = "nfs"
 
 	// Now set up repos
 	SetUpRepositories()
+	os.Setenv("BLOCKER_PGP_PUBLICKEY", publicPath)
+	os.Setenv("BLOCKER_PGP_PRIVATEKEY", privatePath)
+	// Get the keys
+	crypto.GetPGPKeyRings()
 }
+
+// Test down the suite
+/*func (s *BlockSuite) TearDownSuite(c *C) {
+	os.Remove(publicPath)
+	os.Remove(privatePath)
+	os.Setenv("BLOCKER_PGP_PUBLICKEY", "")
+	os.Setenv("BLOCKER_PGP_PRIVATEKEY", "")
+}*/
 
 func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
 

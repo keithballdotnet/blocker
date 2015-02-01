@@ -275,11 +275,11 @@ func NewDiskBlockRepository() (DiskBlockRepository, error) {
 	depositoryDir := os.Getenv("BLOCKER_DISK_DIR")
 	if depositoryDir == "" {
 		depositoryDir = filepath.Join(os.TempDir(), "blocker")
-	}
 
-	err := os.Mkdir(depositoryDir, 0777)
-	if err != nil && !os.IsExist(err) {
-		panic("Unable to create directory: " + err.Error())
+		err := os.Mkdir(depositoryDir, 0777)
+		if err != nil && !os.IsExist(err) {
+			panic("Unable to create directory: " + err.Error())
+		}
 	}
 
 	log.Println("Storing blocks to: ", depositoryDir)
@@ -327,6 +327,8 @@ func directoryExists(path string) (bool, error) {
 func (r DiskBlockRepository) SaveBlock(bytes []byte, blockHash string) error {
 
 	dataDirectory, _ := r.GetDataDirectory(blockHash)
+
+	log.Println("Writing block to: ", filepath.Join(dataDirectory, blockHash+r.extension))
 
 	err := ioutil.WriteFile(filepath.Join(dataDirectory, blockHash+r.extension), bytes, 0644)
 	if err != nil {

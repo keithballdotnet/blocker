@@ -25,7 +25,7 @@ A block based filesystem microservice written in go
 
 ##Authorization
 
-Authorization is done via a *Authorization* header sent in a request.  Anonymous requests are not allowed.  To authenticate a request, you must sign the request with the key for the account that is making the request and pass that signature as part of the request.  
+Authorization is done via a *Authorization* header sent in a request.  Anonymous requests are not allowed.  To authenticate a request, you must sign the request with the shared key when making the request and pass that signature as part of the request.  
 
 Here you can see an example of a Authorization header
 ```

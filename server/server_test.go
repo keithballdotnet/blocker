@@ -124,9 +124,9 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	client := http.Client{}
 
 	response, err := client.Do(request)
-	c.Assert(response.StatusCode == http.StatusCreated, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusCreated, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
@@ -261,8 +261,8 @@ func (s *ServerSuite) TestAuthFail(c *C) {
 	client := http.Client{}
 
 	response, err := client.Do(request)
-	c.Assert(response.StatusCode == http.StatusUnauthorized, IsTrue, Commentf("Expected AD got: %v", response.StatusCode))
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusUnauthorized, IsTrue, Commentf("Expected AD got: %v", response.StatusCode))
 
 	request, err = http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), contentReader)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))

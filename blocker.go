@@ -4,13 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Inflatablewoman/blocker/blocks"
+	"github.com/Inflatablewoman/blocker/crypto"
 	"github.com/Inflatablewoman/blocker/server"
 	"log"
 	"os"
 	"strings"
 )
 
-const AppVersion = "1.0.3"
+const AppVersion = "1.0.4"
 
 func main() {
 
@@ -37,6 +38,9 @@ func main() {
 
 	// Now set up repos
 	blocks.SetUpRepositories()
+
+	// Get the PGP keys
+	crypto.GetPGPKeyRings()
 
 	log.SetOutput(os.Stdout)
 	log.SetPrefix("Blocker:")
