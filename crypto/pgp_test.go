@@ -22,12 +22,7 @@ var publicPath = filepath.Join(os.TempDir(), "blocker", "public.pem")
 // Path to the private key
 var privatePath = filepath.Join(os.TempDir(), "blocker", "private.pem")
 
-// Setup the REST testing suite
-func (s *CryptoPGPSuite) SetUpSuite(c *C) {
-	// Setup logging
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-
+func SetupPGPTests() {
 	depositoryDir := filepath.Join(os.TempDir(), "blocker")
 
 	err := os.Mkdir(depositoryDir, 0777)
@@ -42,6 +37,14 @@ func (s *CryptoPGPSuite) SetUpSuite(c *C) {
 
 	// Get the keys
 	GetPGPKeyRings()
+}
+
+// Setup the REST testing suite
+func (s *CryptoPGPSuite) SetUpSuite(c *C) {
+	// Setup logging
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	SetupPGPTests()
 }
 
 // Test down the suite

@@ -45,6 +45,7 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 	os.Setenv("BLOCKER_PGP_PUBLICKEY", publicPath)
 	os.Setenv("BLOCKER_PGP_PRIVATEKEY", privatePath)
 	// Get the keys
+	crypto.SetupPGPTests()
 	crypto.GetPGPKeyRings()
 }
 
