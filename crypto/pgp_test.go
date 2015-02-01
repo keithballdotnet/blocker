@@ -27,6 +27,14 @@ func (s *CryptoPGPSuite) SetUpSuite(c *C) {
 	// Setup logging
 	log.SetOutput(os.Stdout)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
+	depositoryDir := filepath.Join(os.TempDir(), "blocker")
+
+	err := os.Mkdir(depositoryDir, 0777)
+	if err != nil && !os.IsExist(err) {
+		panic("Unable to create directory: " + err.Error())
+	}
+
 	ioutil.WriteFile(publicPath, []byte(publicKeyString), 0666)
 	ioutil.WriteFile(privatePath, []byte(privateKeyString), 0666)
 	os.Setenv("BLOCKER_PGP_PUBLICKEY", publicPath)
