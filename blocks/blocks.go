@@ -249,8 +249,6 @@ func DeleteBlockedFile(blockFileID string) error {
 					return err
 				}
 
-				// Remove the key
-				crypto.DeleteAesSecret(fileBlock.Hash)
 			} else {
 				// Save that we are using the block one less time.
 				BlockInfoStore.SaveBlockInfo(*blockInfo)
