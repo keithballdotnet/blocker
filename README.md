@@ -75,6 +75,37 @@ hmac := crypto.GetHmac256(authRequestKey, SharedKey)
 request.Header.Add("Authorization", hmac)
 ```
 
+##Data Encryption
+
+Data encryption is done using [openpgp golang library](https://godoc.org/golang.org/x/crypto/openpgp).  Specically SHA256 hashes and the AES256 Cipher is used for encryption.  Compression is currently handled seperatley, using google's [Snappy compression](https://code.google.com/p/snappy/).
+
+```go
+// Default encryption settings (No encryption done by pgp)
+var pgpConfig = &packet.Config{
+	DefaultHash:            crypto.SHA256,
+	DefaultCipher:          packet.CipherAES256,
+	DefaultCompressionAlgo: packet.CompressionNone,
+}
+```
+
+Data encryption requires a key, to generate a key you can use the following command.  
+
+```
+gpg2 --batch --gen-key --armor ./src/github.com/Inflatablewoman/blocker/crypto/gpg.batch
+```
+
+Once you have the public and private key files, you should set the following OS variables to the path of where the keys can be found.
+
+```
+export BLOCKER_PGP_PUBLICKEY=path/to/.pubring.gpg
+export BLOCKER_PGP_PRIVATEKEY=path/to/.secring.gpg
+```
+
+A good explanation of PGP Encryption can be found on [wikipedia](http://en.wikipedia.org/wiki/Pretty_Good_Privacy).  
+
+The basic concept is show in this image:
+![](images/PGP-diagram-wikipedia-479x500.jpg?raw=true)
+
 ##REST API
 
 The REST API interface can be used to perform operations against the Filesystem.  Default location is localhost:8010.
@@ -88,9 +119,9 @@ COPY      | /api/blocker/{itemID}  | Creates a copy of a BlockedFile based on th
 POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
 PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
 
+
+
 ##Example code
 [Example test scenario](https://github.com/Inflatablewoman/blocker/blob/master/server/server_test.go)
 
-##TODO
 
-- Store Symmetric keys in a different location from that of the master key
