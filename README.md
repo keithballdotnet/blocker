@@ -9,7 +9,7 @@ A block based filesystem microservice written in go
 ##Features
 
 - Files are stored in blocks
-- Immutable blocks (Append Only)
+- Immutable blocks (Append Only Data Store)
 - Blocks are hashed
 - Blocks are encrypted with own unique Symmetric Key (Symmetric Keys are Encrypted with RSA Master Key)
 - Blocks are compressed using Snappy Compression
@@ -21,7 +21,7 @@ A block based filesystem microservice written in go
    + nfs - Local mount disk storage (GlusterFS could be used)
    + couchbase - Couchbase Raw Binary storage
    + azure - Azure Simple Storage
-   + s3 - s3 storage
+   + s3 - Amazon s3 storage
 
 ##Authorization
 
@@ -77,7 +77,7 @@ request.Header.Add("Authorization", hmac)
 
 ##Data Encryption
 
-Data encryption is done using [openpgp golang library](https://godoc.org/golang.org/x/crypto/openpgp).  Specically SHA256 hashes and the AES256 Cipher is used for encryption.  Compression is currently handled seperatley, using google's [Snappy compression](https://code.google.com/p/snappy/).
+Data encryption is done using [openpgp golang library](https://godoc.org/golang.org/x/crypto/openpgp).  Specifically SHA256 hashes and the AES256 Cipher is used for encryption.  Compression is currently handled seperatley, using google's [Snappy compression](https://code.google.com/p/snappy/).
 
 ```go
 // Default encryption settings (No encryption done by pgp)
@@ -101,7 +101,7 @@ export BLOCKER_PGP_PUBLICKEY=path/to/.pubring.gpg
 export BLOCKER_PGP_PRIVATEKEY=path/to/.secring.gpg
 ```
 
-A good explanation of PGP Encryption can be found on [wikipedia](http://en.wikipedia.org/wiki/Pretty_Good_Privacy).  
+A good explanation of PGP Encryption can be found on [wikipedia](http://en.wikipedia.org/wiki/Pretty_Good_Privacy).  In essence each block of data is encrypted with it's own random symmetric key.  This key is then encrypted using the given public key and stored with the data.
 
 The basic concept is show in this image:
 ![](images/PGP-diagram-wikipedia-479x500.jpg?raw=true)
@@ -118,8 +118,6 @@ DELETE      | /api/blocker/{itemID}  | Delete a BlockedFile based on the passed 
 COPY      | /api/blocker/{itemID}  | Creates a copy of a BlockedFile based on the passed ID
 POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
 PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
-
-
 
 ##Example code
 [Example test scenario](https://github.com/Inflatablewoman/blocker/blob/master/server/server_test.go)
