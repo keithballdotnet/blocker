@@ -3,7 +3,7 @@ Blocker
 A block based filesystem microservice written in go
 
 [![GoDoc](https://godoc.org/github.com/Inflatablewoman/blocker?status.svg)](https://godoc.org/github.com/Inflatablewoman/blocker)
-[![Build Status](https://travis-ci.org/Inflatablewoman/blocker.svg)](https://travis-ci.org/Inflatablewoman/blocker.svg)
+[![Build Status](https://travis-ci.org/Inflatablewoman/blocker.svg)](https://travis-ci.org/Inflatablewoman/blocker)
 [![Coverage Status](https://coveralls.io/repos/Inflatablewoman/blocker/badge.svg)](https://coveralls.io/r/Inflatablewoman/blocker)
 
 ##Features
@@ -110,14 +110,7 @@ The basic concept is show in this image:
 
 The REST API interface can be used to perform operations against the Filesystem.  Default location is localhost:8010.
 
-HTTP Method | URI path | Description
-------------|----------|------------
-GET         | /api/blocker  | Retrieves a hello.
-GET         | /api/blocker/{itemID}  | Retrieves a BlockedFile based on the passed ID
-DELETE      | /api/blocker/{itemID}  | Delete a BlockedFile based on the passed ID
-COPY      | /api/blocker/{itemID}  | Creates a copy of a BlockedFile based on the passed ID
-POST        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
-PUT        | /api/blocker   | Uploads a file and returns a newly created BlockedFile
+[Apiary.io Documenation](http://docs.blockerapi.apiary.io)
 
 ##Example code
 [Example test scenario](https://github.com/Inflatablewoman/blocker/blob/master/server/server_test.go)

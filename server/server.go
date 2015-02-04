@@ -86,7 +86,9 @@ func SetupAuthenticationKey() {
 		log.Printf("Generated new Access Key: %s", newAccessKey)
 		// Write key to key file
 		err := ioutil.WriteFile(keyPath, []byte(newAccessKey), 0644)
-		panic("Unable to write shared key file: " + err.Error())
+		if err != nil {
+			panic("Unable to write shared key file: " + err.Error())
+		}
 
 		// Set the key
 		SharedKey = newAccessKey

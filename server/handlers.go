@@ -76,7 +76,7 @@ func DeleteHandler(u *url.URL, h http.Header, _ interface{}) (int, http.Header, 
 	}
 
 	// All good!
-	return http.StatusOK, nil, nil, nil
+	return http.StatusNoContent, nil, nil, nil
 }
 
 // RawUploadHandler handles PUT operations

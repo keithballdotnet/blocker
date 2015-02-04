@@ -136,7 +136,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	err = json.Unmarshal(body, &blockedFile)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
-	fmt.Println(blockedFile)
+	fmt.Println(FormatJSON("BlockedFile", blockedFile))
 
 	c.Assert(blockedFile.ID != "", IsTrue)
 	//	c.Assert(blockedFile.Name == filename, IsTrue)
@@ -187,7 +187,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	err = json.Unmarshal(body, &copiedBlockFile)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
-	fmt.Println(copiedBlockFile)
+	fmt.Println(FormatJSON("BlockedFile", copiedBlockFile))
 
 	c.Assert(copiedBlockFile.ID != blockedFile.ID, IsTrue, Commentf("Failed with error: %v", err))
 
@@ -225,7 +225,7 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
-	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+	c.Assert(response.StatusCode == http.StatusNoContent, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 
 	// Delete the copied upload
 	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, copiedBlockFile.ID), nil)
@@ -233,8 +233,17 @@ func (s *ServerSuite) TestFileUploadAndDownload(c *C) {
 	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", copiedBlockFile.ID))
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
-	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+	c.Assert(response.StatusCode == http.StatusNoContent, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 
+}
+
+// PrintJSON prints JSON with correct indents useful for log outputs.
+func FormatJSON(name string, thing interface{}) string {
+	jsonBytes, err := json.MarshalIndent(thing, "", "    ")
+	if err != nil {
+		return fmt.Sprintf("ERROR: %s\n", err)
+	}
+	return fmt.Sprintf("%s: %s\n", name, string(jsonBytes))
 }
 
 func (s *ServerSuite) TestAuthFail(c *C) {
@@ -314,7 +323,7 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	err = json.Unmarshal(body, &blockedFile)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
-	fmt.Println(blockedFile)
+	fmt.Println(FormatJSON("BlockedFile", blockedFile))
 
 	c.Assert(blockedFile.ID != "", IsTrue)
 	//	c.Assert(blockedFile.Name == filename, IsTrue)
@@ -338,5 +347,79 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
 	response, err = client.Do(request)
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusNoContent, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+}
+
+func (s *ServerSuite) TestLarge240MbUploadAndDownload(c *C) {
+
+	// Set the key path  Make sure the default key is loaded.
+	flag.Set("sharedKey", "")
+
+	// Load the key
+	SetupAuthenticationKey()
+
+	// Upload simple text
+	uploadContent := crypto.RandomSecret(150000000)
+	contentReader := strings.NewReader(uploadContent)
+
+	request, err := http.NewRequest("PUT", fmt.Sprintf("%s/api/v1/blocker", baseURL), contentReader)
+	request = SetAuth(request, "PUT", "/api/v1/blocker")
+
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	filename := "helloWorld.txt"
+	contentType := "text/plain"
+	length := int64(len(uploadContent))
+
+	request.Header.Add("FileName", filename)
+	request.Header.Add("Content-Type", contentType)
+	client := http.Client{}
+
+	start := time.Now()
+	response, err := client.Do(request)
+	end := time.Now()
+
+	fmt.Printf("Got Response: Large file BLOCK took: %v\n", end.Sub(start))
+
+	c.Assert(response.StatusCode == http.StatusCreated, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	var blockedFile blocks.BlockedFile
+	err = json.Unmarshal(body, &blockedFile)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	fmt.Println(FormatJSON("BlockedFile", blockedFile))
+
+	c.Assert(blockedFile.ID != "", IsTrue)
+	//	c.Assert(blockedFile.Name == filename, IsTrue)
+	c.Assert(blockedFile.Length == length, IsTrue)
+
+	// Now try to get the data we uploaded
+	request, err = http.NewRequest("GET", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+	request = SetAuth(request, "GET", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
+	start = time.Now()
+	response, err = client.Do(request)
+	end = time.Now()
+
+	fmt.Printf("Got Response: Large file BLOCK took: %v\n", end.Sub(start))
+
 	c.Assert(response.StatusCode == http.StatusOK, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	defer response.Body.Close()
+	body, err = ioutil.ReadAll(response.Body)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	receivedContent := string(body)
+	c.Assert(receivedContent == uploadContent, IsTrue, Commentf("Content was: %v", receivedContent))
+
+	request, err = http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/blocker/%s", baseURL, blockedFile.ID), nil)
+	request = SetAuth(request, "DELETE", fmt.Sprintf("/api/v1/blocker/%s", blockedFile.ID))
+	response, err = client.Do(request)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+	c.Assert(response.StatusCode == http.StatusNoContent, IsTrue, Commentf("Failed with status: %v", response.StatusCode))
 }

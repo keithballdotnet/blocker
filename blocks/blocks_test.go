@@ -5,6 +5,7 @@ import (
 	"github.com/Inflatablewoman/blocker/crypto"
 	. "github.com/Inflatablewoman/blocker/gocheck2"
 	. "gopkg.in/check.v1"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -42,8 +43,17 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 
 	// Now set up repos
 	SetUpRepositories()
-	os.Setenv("BLOCKER_PGP_PUBLICKEY", publicPath)
-	os.Setenv("BLOCKER_PGP_PRIVATEKEY", privatePath)
+
+	publicKeyPath := os.Getenv("BLOCKER_PGP_PUBLICKEY")
+	if publicKeyPath == "" {
+		os.Setenv("BLOCKER_PGP_PUBLICKEY", publicPath)
+	}
+
+	privateKeyPath := os.Getenv("BLOCKER_PGP_PRIVATEKEY")
+	if privateKeyPath == "" {
+		os.Setenv("BLOCKER_PGP_PRIVATEKEY", privatePath)
+	}
+
 	// Get the keys
 	crypto.GetPGPKeyRings()
 }
@@ -55,6 +65,59 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 	os.Setenv("BLOCKER_PGP_PUBLICKEY", "")
 	os.Setenv("BLOCKER_PGP_PRIVATEKEY", "")
 }*/
+
+func (s *BlockSuite) Test240MbBlock(c *C) {
+
+	randomInFile := filepath.Join(os.TempDir(), "random.in")
+	randomOutFile := filepath.Join(os.TempDir(), "random.out")
+
+	randomData := []byte(crypto.RandomSecret(150000000))
+	err := ioutil.WriteFile(randomInFile, randomData, 0644)
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	fmt.Printf("Wrote bytes: %v Size: %v\n", randomInFile, len(randomData))
+
+	// Block a file...
+	start := time.Now()
+	randomBlock, err := BlockFile(randomInFile)
+	end := time.Now()
+
+	fmt.Printf("Large file BLOCK took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Clean up any old file
+	os.Remove(randomOutFile)
+
+	// Get the file and create a copy to the output
+	start = time.Now()
+	err = UnblockFile(randomBlock.ID, randomOutFile)
+	end = time.Now()
+
+	fmt.Printf("Large file UNBLOCK took: %v\n", end.Sub(start))
+
+	// No error
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
+
+	// Delete block...
+	start = time.Now()
+	err = DeleteBlockedFile(randomBlock.ID)
+	end = time.Now()
+
+	fmt.Printf("Delete Large file Block took: %v\n", end.Sub(start))
+
+	// Get some info about the file we are going test
+	inputFileInfo, _ := os.Stat(randomInFile)
+	outputFileInfo, _ := os.Stat(randomOutFile)
+
+	// Check we wrote the full file size
+	c.Assert(outputFileInfo.Size() == inputFileInfo.Size(), IsTrue, Commentf("Expected Size: %v Resulting Size: %v", inputFileInfo.Size(), outputFileInfo.Size()))
+
+	// Clean up any old file
+	os.Remove(randomInFile)
+	os.Remove(randomOutFile)
+}
 
 func (s *BlockSuite) TestAdvancedBlockCopyDelete(c *C) {
 
