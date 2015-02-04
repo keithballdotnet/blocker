@@ -6,9 +6,10 @@ A block based filesystem microservice written in go
 # Group Blocker
 Blocker related resources of the **Blocker API**
 
-## Create BlockedFile [/api/v1/blocker]
+## Creating a BlockedFile [/api/v1/blocker]
 
 ### POST BlockedFile [POST]
+This is usually done via a form.
 + Request 
     + Header
 
@@ -24,6 +25,8 @@ Blocker related resources of the **Blocker API**
     [BlockedFile][]
 
 ### PUT BlockedFile [PUT]
+Typically a raw upload
+
 + Request 
     + Header
 
@@ -65,6 +68,8 @@ BlockedFile including the block list
             }]
             
 ### Get BlockedFile [GET]
+Get a specific BlockFile.
+
 + Request 
     + Header
 
@@ -75,6 +80,8 @@ BlockedFile including the block list
     [BlockedFile][]
 
 ### Copy BlockedFile [COPY]
+Copy a BlockedFile.  The returned BlockedFile is the new BlockedFile.
+
 + Request 
     + Header
 
@@ -86,6 +93,8 @@ BlockedFile including the block list
 
 
 ### Delete BlockedFile [DELETE]
+Delete a BlockedFile.
+
 + Request 
     + Header
 
