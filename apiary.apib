@@ -6,18 +6,49 @@ A block based filesystem microservice written in go
 # Group Blocker
 Blocker related resources of the **Blocker API**
 
+## Create BlockedFile [/api/v1/blocker]
+
+### POST BlockedFile [POST]
++ Request 
+    + Header
+
+            Authorization: RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk=
+            Content-type: content-type
+        
+    + Body
+        
+            Your raw content goes here...
+
++ Response 200 (application/json)
+
+    [BlockedFile][]
+
+### PUT BlockedFile [PUT]
++ Request 
+    + Header
+
+            Authorization: RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk=
+            Content-type: content-type
+        
+    + Body
+        
+            Your raw content goes here...
+            
++ Response 200 (application/json)
+
+  [BlockedFile][]
+
 ## BlockedFile [/api/v1/blocker/{id}]
-A blocked file including the block list
+BlockedFile including the block list
 
 + Parameters
     + id (required, string, `7203f732-0fa4-430c-9763-2ba1b88670cc`) ... Guid `id` of the BlockedFile to perform action with.
 
-### Get BlockedFile [GET]
-+ Response 200 (application/json)
++ Model (application/json)
 
     + Body
 
-            {
+            [{
                 "id": "dc50dc9a-fd1c-44e6-a54f-a4a228bb1928",
                 "fileHash": "e4e21579f6360b35e66dc97b67cd732a3f759623e41e4e077bec039eeb79fd0a",
                 "length": 5504597,
@@ -27,39 +58,37 @@ A blocked file including the block list
                         "hash": "31d10f019a999e30b10c056e1f06d1b356af1e853a0f37e9fc22e283a4cfd76d"
                     },
                     {
-                    "position": 2,
-                    "hash": "abe9108b2e0169829cc40b4c0668cddf6df04723a4d22cc6e16eb01706904c99"
+                        "position": 2,
+                        "hash": "abe9108b2e0169829cc40b4c0668cddf6df04723a4d22cc6e16eb01706904c99"
                     }
                 ]
-            }
+            }]
+            
+### Get BlockedFile [GET]
++ Request 
+    + Header
+
+            Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+
++ Response 200 (application/json)
+
+    [BlockedFile][]
 
 ### Copy BlockedFile [COPY]
++ Request 
+    + Header
+
+            Authorization: RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk=
+
 + Response 200 (application/json)
 
-    + Body
-
-            {
-                "id": "dc50dc9a-fd1c-44e6-a54f-a4a228bb1928",
-                "fileHash": "e4e21579f6360b35e66dc97b67cd732a3f759623e41e4e077bec039eeb79fd0a",
-                "length": 5504597,
-                "blocks": [
-                    {
-                        "position": 1,
-                        "hash": "31d10f019a999e30b10c056e1f06d1b356af1e853a0f37e9fc22e283a4cfd76d"
-                    },
-                    {
-                    "position": 2,
-                    "hash": "abe9108b2e0169829cc40b4c0668cddf6df04723a4d22cc6e16eb01706904c99"
-                    }
-                ]
-            }
+    [BlockedFile][]
 
 
 ### Delete BlockedFile [DELETE]
++ Request 
+    + Header
+
+            Authorization: RvPtP0QB7iIun1ehwheD4YUo7+fYfw7/ywl+HsC5Ddk=
+
 + Response 204
-
-## Hello [/api/v1/blocker]
-### Get Hello [GET]
-+ Response 200 (application/json)
-
-        ["Server: Blocker"]
