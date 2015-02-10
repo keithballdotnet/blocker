@@ -6,6 +6,22 @@ A block based filesystem microservice written in go
 [![Build Status](https://travis-ci.org/Inflatablewoman/blocker.svg)](https://travis-ci.org/Inflatablewoman/blocker)
 [![Coverage Status](https://coveralls.io/repos/Inflatablewoman/blocker/badge.svg)](https://coveralls.io/r/Inflatablewoman/blocker)
 
+##The case for Blocker
+
+###What is blocker?
+
+Blocker is a block based file storage microservice. Files are stored in blocks referenced by their hash value. Blocks are encrypted. Blocks are compressed. Blocker is storage provider agnostic. Blocker can save storage space by removing duplication of data.
+
+Imagine the following upload of a 14MB video file. The next time this document is uploaded or copied in the system then blocker will check for the existence of the hashes h1, h2, h3 and h4. If the hashes exist then no action will be taken.
+
+![](images/DropboxFileFormat.png?raw=true)
+
+_Image taken from blogs.dropbox.com_
+
+If a change is made to the video file, for example an extra 1mb of data is appended and uploaded. Then the document will now exist as h1, h2, h3 and the newly created h5. h4 will remain stored and be returned if the old version of the document is requested.
+
+The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dropbox.com/tech/2014/07/streaming-file-synchronization/)
+
 ##Features
 
 - Files are stored in blocks
@@ -103,8 +119,11 @@ export BLOCKER_PGP_PRIVATEKEY=path/to/.secring.gpg
 
 A good explanation of PGP Encryption can be found on [wikipedia](http://en.wikipedia.org/wiki/Pretty_Good_Privacy).  In essence each block of data is encrypted with it's own random symmetric key.  This key is then encrypted using the given public key and stored with the data.
 
-The basic concept is show in this image:
+The basic concept of pgp is show in this image:
+
 ![](images/PGP-diagram-wikipedia-479x500.jpg?raw=true)
+
+_Image taken from wikipedia_
 
 ##REST API
 
@@ -114,5 +133,3 @@ The REST API interface can be used to perform operations against the Filesystem.
 
 ##Example code
 [Example test scenario](https://github.com/Inflatablewoman/blocker/blob/master/server/server_test.go)
-
-

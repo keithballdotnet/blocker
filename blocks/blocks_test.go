@@ -2,14 +2,15 @@ package blocks
 
 import (
 	"fmt"
-	"github.com/Inflatablewoman/blocker/crypto"
-	. "github.com/Inflatablewoman/blocker/gocheck2"
-	. "gopkg.in/check.v1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/Inflatablewoman/blocker/crypto"
+	. "github.com/Inflatablewoman/blocker/gocheck2"
+	. "gopkg.in/check.v1"
 )
 
 func Test(t *testing.T) {
@@ -65,6 +66,108 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 	os.Setenv("BLOCKER_PGP_PUBLICKEY", "")
 	os.Setenv("BLOCKER_PGP_PRIVATEKEY", "")
 }*/
+
+func (s *BlockSuite) TestCBBlockRepositoryCreationWorksWithConfig(c *C) {
+	os.Setenv("CB_HOST", "http://localhost:1337")
+
+	// Couchbase tests the bucket so this should fail...
+	BlockStore, err := NewCouchBaseBlockRepository()
+	c.Assert(err != nil, IsTrue)
+
+	// Expect all errors..
+	_, err = BlockStore.CheckBlockExists("invalid")
+	c.Assert(err != nil, IsTrue)
+
+	err = BlockStore.DeleteBlock("invalid")
+	c.Assert(err != nil, IsTrue)
+
+	err = BlockStore.SaveBlock([]byte("blob"), "invalid")
+	c.Assert(err != nil, IsTrue)
+
+	_, err = BlockStore.GetBlock("invalid")
+	c.Assert(err != nil, IsTrue)
+}
+
+func (s *BlockSuite) TestAzureBlockRepositoryCreationWorksWithConfig(c *C) {
+	var BlockStore BlockRepository
+
+	// Set values
+	os.Setenv("BLOCKER_AZURE_ACCOUNT", "THEACCOUNT")
+	os.Setenv("BLOCKER_AZURE_SECRET", "THESECRET")
+
+	BlockStore, err := NewAzureBlockRepository()
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v on %v", err, BlockStore))
+
+	// Expect all errors..
+	_, err = BlockStore.CheckBlockExists("invalid")
+	c.Assert(err != nil, IsTrue)
+
+	err = BlockStore.DeleteBlock("invalid")
+	c.Assert(err != nil, IsTrue)
+
+	err = BlockStore.SaveBlock([]byte("blob"), "invalid")
+	c.Assert(err != nil, IsTrue)
+
+	_, err = BlockStore.GetBlock("invalid")
+	c.Assert(err != nil, IsTrue)
+}
+
+func (s *BlockSuite) TestS3BlockRepositoryCreationPanicsWithEmptyConfig(c *C) {
+	// We catch the panic.  Recover and if there was not panic.  The test failed.
+	defer func() {
+		if r := recover(); r == nil {
+			c.FailNow()
+		}
+	}()
+
+	// Get the s3 repo.  This should fail..
+	_, _ = NewS3BlockRepository()
+}
+
+func (s *BlockSuite) TestS3BlockRepositoryCreationWorksWithConfig(c *C) {
+	var BlockStore BlockRepository
+
+	// Set values
+	os.Setenv("BLOCKER_S3_KEY", "THEKEY")
+	os.Setenv("BLOCKER_S3_SECRET", "THESECRET")
+	os.Setenv("BLOCKER_S3_BUCKET", "THEBUCKET")
+
+	BlockStore, err := NewS3BlockRepository()
+	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v on %v", err, BlockStore))
+
+	// Expect all errors..
+	_, err = BlockStore.CheckBlockExists("invalid")
+	c.Assert(err != nil, IsTrue)
+
+	err = BlockStore.DeleteBlock("invalid")
+	c.Assert(err != nil, IsTrue)
+
+	err = BlockStore.SaveBlock([]byte("blob"), "invalid")
+	c.Assert(err != nil, IsTrue)
+
+	_, err = BlockStore.GetBlock("invalid")
+	c.Assert(err != nil, IsTrue)
+}
+
+func (s *BlockSuite) TestCopyANonExistingBlockShouldFail(c *C) {
+	_, err := CopyBlockedFile("invalid-block-id")
+	c.Assert(err != nil, IsTrue)
+}
+
+func (s *BlockSuite) TestDeleteANonExistingBlockShouldFail(c *C) {
+	err := DeleteBlockedFile("invalid-block-id")
+	c.Assert(err != nil, IsTrue)
+}
+
+func (s *BlockSuite) TestBlockFileWithInvaidPathShouldFail(c *C) {
+	_, err := BlockFile("/this/file/does/not/exist.data")
+	c.Assert(err != nil, IsTrue)
+}
+
+func (s *BlockSuite) TestUnBlockFileWithInvaidIDShouldFail(c *C) {
+	err := UnblockFile("invalid-block-id", "/this/file/does/not/exist.data")
+	c.Assert(err != nil, IsTrue)
+}
 
 func (s *BlockSuite) Test240MbBlock(c *C) {
 
@@ -282,6 +385,10 @@ func (s *BlockSuite) TestLiteide(c *C) {
 	c.Assert(err == nil, IsTrue, Commentf("Failed with error: %v", err))
 
 	bibleOutFile := os.TempDir() + "/" + liteIdeoutFile
+
+	// Invalid save location test...
+	err = UnblockFile(bibleBlockFile.ID, "/this/file/does/not/exist.data")
+	c.Assert(err != nil, IsTrue)
 
 	// Clean up any old file
 	os.Remove(bibleOutFile)

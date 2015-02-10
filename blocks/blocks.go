@@ -193,16 +193,18 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 			log.Printf("Saving Hash: %v StoreID: %v", hash, storeID)
 
 			// Commit block to repository
-			BlockStore.SaveBlock(storeData, storeID)
+			err = BlockStore.SaveBlock(storeData, storeID)
+			if err != nil {
+				return BlockedFile{}, err
+			}
 
-			// Save FileBlockInfo for hash
-
-			BlockInfoStore.SaveBlockInfo(BlockInfo{Hash: hash, StoreID: storeID, UseCount: 1, Created: now, LastUsage: now})
+			// Save BlockInfo for hash
+			err = BlockInfoStore.SaveBlockInfo(BlockInfo{Hash: hash, StoreID: storeID, UseCount: 1, Created: now, LastUsage: now})
 		} else {
 			// Register that we have been used again in another file
 			fileBlockInfo.LastUsage = now
 			fileBlockInfo.UseCount = fileBlockInfo.UseCount + 1
-			BlockInfoStore.SaveBlockInfo(*fileBlockInfo)
+			err = BlockInfoStore.SaveBlockInfo(*fileBlockInfo)
 		}
 
 		fileblock := Block{blockCount, hash}
@@ -213,9 +215,9 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 
 	blockedFile := BlockedFile{uuid.New(), fileHash, fileLength, fileblocks}
 
-	BlockedFileStore.SaveBlockedFile(blockedFile)
+	err := BlockedFileStore.SaveBlockedFile(blockedFile)
 
-	return blockedFile, nil
+	return blockedFile, err
 }
 
 // DeleteBlockFile -  Deletes a BlockedFile and any unused FileBlocks

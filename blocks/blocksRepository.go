@@ -206,7 +206,7 @@ func NewCouchBaseBlockRepository() (CouchBaseBlockRepository, error) {
 	bucket, err := couchbase.GetBucket(couchbaseAddress, "default", "blocker")
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting bucket:  %v", err))
-		panic("Critical Error: No storage for files avilable in couchbase!")
+		return CouchBaseBlockRepository{}, err
 	}
 
 	log.Printf("NewCouchBaseBlockRepository: Connected to Couchbase Server: %s\n", couchbaseAddress)
@@ -216,43 +216,43 @@ func NewCouchBaseBlockRepository() (CouchBaseBlockRepository, error) {
 
 // Save persists a block into the repository
 func (r CouchBaseBlockRepository) SaveBlock(bytes []byte, blockHash string) error {
+	if r.bucket == nil {
+		return errors.New("No couchbase bucket!")
+	}
+
 	return r.bucket.SetRaw(blockHash, 0, bytes)
 }
 
 // Get a block from the repository
 func (r CouchBaseBlockRepository) GetBlock(blockHash string) ([]byte, error) {
-
-	if blockHash == "" {
-		return nil, errors.New("No Block hash passed")
+	if r.bucket == nil {
+		return nil, errors.New("No couchbase bucket!")
 	}
 
 	// Get data...
-	blockData, err := r.bucket.GetRaw(blockHash)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return blockData, nil
+	return r.bucket.GetRaw(blockHash)
 }
 
 // DeleteBlock - Deletes a block of data
 func (r CouchBaseBlockRepository) DeleteBlock(blockHash string) error {
+	if r.bucket == nil {
+		return errors.New("No couchbase bucket!")
+	}
+
 	// Delete block
 	return r.bucket.Delete(blockHash)
 }
 
 // Check to see if a block exists
 func (r CouchBaseBlockRepository) CheckBlockExists(blockHash string) (bool, error) {
+	if r.bucket == nil {
+		return false, errors.New("No couchbase bucket!")
+	}
 
 	// Check to see if hash is present
 	result, err := r.bucket.Observe(blockHash)
-	if err != nil {
-		return false, err
-	}
-
 	// If the status is anything other than not found, then it's stored in couch base...
-	if result.Status != memcached.ObservedNotFound {
+	if err == nil && result.Status != memcached.ObservedNotFound {
 		return true, nil
 	}
 
