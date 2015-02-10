@@ -20,7 +20,7 @@ _Image taken from blogs.dropbox.com_
 
 If a change is made to the video file, for example an extra 1mb of data is appended and uploaded. Then the document will now exist as h1, h2, h3 and the newly created h5. h4 will remain stored and be returned if the old version of the document is requested.
 
-The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dropbox.com/tech/2014/07/streaming-file-synchronization/)
+The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dropbox.com/tech/2014/07/streaming-file-synchronization/).
 
 ##Features
 
@@ -38,6 +38,10 @@ The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dr
    + couchbase - Couchbase Raw Binary storage
    + azure - Azure Simple Storage
    + s3 - Amazon s3 storage
+
+##Todo
+
+- Updating a block from the block list
 
 ##Authorization
 

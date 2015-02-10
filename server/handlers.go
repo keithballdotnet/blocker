@@ -186,6 +186,12 @@ func BlockAndRespond(w http.ResponseWriter, content io.Reader) {
 
 	blockedFile, err := blocks.BlockBuffer(sourceFile)
 
+	if err != nil {
+		log.Println("Error blocking file: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	w.Header()["Content-Type"] = []string{"application/json"}
 	body, err := json.Marshal(blockedFile)

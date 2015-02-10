@@ -190,7 +190,8 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 			// Get a 50byte secret to store the file under
 			storeID := strings.ToLower(crypto.RandomSecret(40))
 
-			log.Printf("Saving Hash: %v StoreID: %v", hash, storeID)
+			storeSize := len(storeData)
+			log.Printf("Saving Block: %v Block: %v Store: %v (%.2f%%) StoreID: %v", hash, count, storeSize, ((float64(storeSize) / float64(count)) * 100), storeID)
 
 			// Commit block to repository
 			err = BlockStore.SaveBlock(storeData, storeID)
