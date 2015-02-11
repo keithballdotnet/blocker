@@ -209,8 +209,17 @@ func encodeHex(bytes []byte) string {
 func AesCfbDecrypt(encryptedBytes []byte, hash string) ([]byte, error) {
 	// Get the key for this hash
 	aesEncryptionKey, err := GetAesSecret(hash)
+	if err != nil {
+		return nil, err
+	}
 
-	block, err := aes.NewCipher(aesEncryptionKey.key)
+	return AesDecrypt(encryptedBytes, aesEncryptionKey.key)
+}
+
+// Encrpyt data using AES with the CFB chipher mode
+func AesDecrypt(encryptedBytes []byte, key []byte) ([]byte, error) {
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
@@ -237,8 +246,17 @@ func AesCfbDecrypt(encryptedBytes []byte, hash string) ([]byte, error) {
 func AesCfbEncrypt(bytesToEncrypt []byte, hash string) ([]byte, error) {
 	// key := []byte("a very very very very secret key") // 32 bytes
 	aesEncryptionKey, err := GetAesSecret(hash)
+	if err != nil {
+		return nil, err
+	}
 
-	block, err := aes.NewCipher(aesEncryptionKey.key)
+	return AesEncrypt(bytesToEncrypt, aesEncryptionKey.key)
+}
+
+// Encrpyt data using AES with the CFB chipher mode
+func AesEncrypt(bytesToEncrypt []byte, key []byte) ([]byte, error) {
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}

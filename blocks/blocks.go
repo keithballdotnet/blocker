@@ -70,6 +70,12 @@ var BlockInfoStore BlockInfoRepository
 // StorageProviderName is the name of the selected storage provider
 var StorageProviderName string
 
+// CryptoProvider is the configured crypto provider to use for encrypting the data at rest
+var CryptoProvider crypto.CryptoProvider
+
+// CryptoProviderName is the name of the crypto provider
+var CryptoProviderName string
+
 // Set up repositories in the init to keep connections alive
 func SetUpRepositories() {
 	var err error
@@ -104,6 +110,20 @@ func SetUpRepositories() {
 		panic(err)
 	}
 
+	// Load the storage provider
+	switch CryptoProviderName {
+	case "aws":
+		CryptoProvider, err = crypto.NewAwsCryptoProvider()
+	case "openpgp":
+		CryptoProvider, err = crypto.NewOpenPGPCryptoProvider()
+	default:
+		// Default to openpgp
+		CryptoProvider, err = crypto.NewOpenPGPCryptoProvider()
+	}
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Create a new file.
@@ -181,7 +201,7 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 
 			// Encrypt the data
 			if UseEncryption {
-				storeData, err = crypto.PGPEncrypt(storeData)
+				storeData, err = CryptoProvider.Encrypt(storeData)
 				if err != nil {
 					return BlockedFile{}, err
 				}
@@ -327,7 +347,7 @@ func UnblockFileToBuffer(blockFileID string) (bytes.Buffer, error) {
 
 		// Decrypt the data
 		if UseEncryption {
-			storeData, err = crypto.PGPDecrypt(storeData)
+			storeData, err = CryptoProvider.Decrypt(storeData)
 			if err != nil {
 				log.Println("Error: " + err.Error())
 				return buffer, err

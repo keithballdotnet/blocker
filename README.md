@@ -95,9 +95,51 @@ hmac := crypto.GetHmac256(authRequestKey, SharedKey)
 request.Header.Add("Authorization", hmac)
 ```
 
+##Compression
+
+Compression is done using google's [Snappy compression](https://code.google.com/p/snappy/).
+
 ##Data Encryption
 
-Data encryption is done using [openpgp golang library](https://godoc.org/golang.org/x/crypto/openpgp).  Specifically SHA256 hashes and the AES256 Cipher is used for encryption.  Compression is currently handled seperatley, using google's [Snappy compression](https://code.google.com/p/snappy/).
+Data encryption can be done using one of either the following providers.  You can select which mode by setting the cli flag *-c* to either *"openpgp"* or *"aws"*.  OpenPGP is the default crypto provider.
+
+###AWS Key Management Service
+
+Communication with the Amazon Web Services (AWS) is done via the [official library]("http://www.github.com/awslabs/aws-sdk-go/aws").
+
+To setup blocker to run with AWS the following should be set.
+
+```
+export BLOCKER_KMS_KEY=YourAwsKey
+export BLOCKER_KMS_SECRET=YourAwsSecret
+
+#optional: export BLOCKER_KMS_REGION=eu-central-1
+#Default value is: eu-central-1
+
+#optional: export BLOCKER_KMS_KEY_ID=YourKeyID
+#If left empty the first availble key from the region will be selected
+
+```
+
+Key management in KMS is very simple.  Refer to the AWS documentation for more information on how to set up an encryption key.  Here I have created a key for blocker.
+
+![](images/aws_key_management.png?raw=true)
+
+I can use AWS Identity and Access Management (IAM) to create a user that can access the key, with the required authorization and define a policy that will only allow access from certain IP addresses.
+
+The encryption follows the pattern as specified in the in the [KMS Cryptographic Whitepaper](https://d0.awsstatic.com/whitepapers/KMS-Cryptographic-Details.pdf).
+
+For each block a new DataKey will be requested from KMS.  The key will return an encrypted version of the key and a plaintext version of the key.  The plaintext version of the key will be used to encrypt the data.  It will be then combined into an envelop of data ready for persistence.
+
+![](images/aws_encrypt.png?raw=true)
+
+Upon a request for decryption the data envelope will be inspected, the encrypted key extracted and then decrypted by the KMS server.  The decrypted key can then be used to decrypt the body of the data.
+
+![](images/aws_decrypt.png?raw=true)
+
+###OpenPGP
+
+The OpenPGP crypto provider is done using using the [openpgp golang library](https://godoc.org/golang.org/x/crypto/openpgp).  Specifically a SHA256 hash and the AES256 Cipher is used for encryption.  
 
 ```go
 // Default encryption settings (No encryption done by pgp)

@@ -42,9 +42,6 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 	// Ensure string is to lower
 	StorageProviderName = "nfs"
 
-	// Now set up repos
-	SetUpRepositories()
-
 	publicKeyPath := os.Getenv("BLOCKER_PGP_PUBLICKEY")
 	if publicKeyPath == "" {
 		os.Setenv("BLOCKER_PGP_PUBLICKEY", publicPath)
@@ -55,8 +52,13 @@ func (s *BlockSuite) SetUpSuite(c *C) {
 		os.Setenv("BLOCKER_PGP_PRIVATEKEY", privatePath)
 	}
 
+	CryptoProviderName = "openpgp"
+
+	// Now set up repos
+	SetUpRepositories()
+
 	// Get the keys
-	crypto.GetPGPKeyRings()
+	// crypto.GetPGPKeyRings()
 }
 
 // Test down the suite

@@ -11,22 +11,26 @@ import (
 	"os"
 )
 
-// publicEntityList - Public Key
-var publicEntityList openpgp.EntityList
-
-// privateEntityList - Private Key
-var privateEntityList openpgp.EntityList
-
-// Default encryption settings (No encryption done by pgp)
+// Default encryption settings (No compression done by pgp)
 var pgpConfig = &packet.Config{
 	DefaultHash:            crypto.SHA256,
 	DefaultCipher:          packet.CipherAES256,
 	DefaultCompressionAlgo: packet.CompressionNone,
-	// CompressionConfig:      &packet.CompressionConfig{Level: 7},
 }
 
-// GetKeyRings - Return
-func GetPGPKeyRings() {
+// AwsCryptoProvider is an implementation of encryption using AWS KMS
+type OpenPGPCryptoProvider struct {
+	// publicEntityList - Public Key
+	publicEntityList openpgp.EntityList
+	// privateEntityList - Private Key
+	privateEntityList openpgp.EntityList
+}
+
+// NewAwsCryptoProvider
+func NewOpenPGPCryptoProvider() (OpenPGPCryptoProvider, error) {
+
+	log.Println("Using OpenPGPCryptoProvider for encryption...")
+
 	publicKeyPath := os.Getenv("BLOCKER_PGP_PUBLICKEY")
 	if publicKeyPath == "" {
 		panic("You must specify a public pgp key.  Set env: BLOCKER_PGP_PUBLICKEY")
@@ -44,7 +48,7 @@ func GetPGPKeyRings() {
 		panic(err)
 	}
 
-	publicEntityList, err = openpgp.ReadArmoredKeyRing(publicKey)
+	publicEntityList, err := openpgp.ReadArmoredKeyRing(publicKey)
 	if err != nil {
 		panic(err)
 	}
@@ -55,16 +59,18 @@ func GetPGPKeyRings() {
 	if err != nil {
 		panic(err)
 	}
-	privateEntityList, err = openpgp.ReadArmoredKeyRing(privateKey)
+	privateEntityList, err := openpgp.ReadArmoredKeyRing(privateKey)
 	if err != nil {
 		panic(err)
 	}
+
+	return OpenPGPCryptoProvider{publicEntityList: publicEntityList, privateEntityList: privateEntityList}, nil
 }
 
-// PGPDecrypt decrypts data that has been encrypted and compressed
-func PGPDecrypt(data []byte) ([]byte, error) {
+// Decrypt decrypts data that has been encrypted and compressed
+func (p OpenPGPCryptoProvider) Decrypt(data []byte) ([]byte, error) {
 	dataBuffer := bytes.NewReader(data)
-	md, err := openpgp.ReadMessage(dataBuffer, privateEntityList, nil, pgpConfig)
+	md, err := openpgp.ReadMessage(dataBuffer, p.privateEntityList, nil, pgpConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +81,13 @@ func PGPDecrypt(data []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// PGPEncrypt - Encrypts the data
-func PGPEncrypt(data []byte) ([]byte, error) {
+// Encrypt - Encrypts the data
+func (p OpenPGPCryptoProvider) Encrypt(data []byte) ([]byte, error) {
 	encryptedBuffer := &bytes.Buffer{}
 	dataBuffer := bytes.NewReader(data)
 
 	// Call openpgp encrypt with default settings
-	pgpWriter, err := openpgp.Encrypt(encryptedBuffer, publicEntityList, nil, nil, pgpConfig)
+	pgpWriter, err := openpgp.Encrypt(encryptedBuffer, p.publicEntityList, nil, nil, pgpConfig)
 	if err != nil {
 		return nil, err
 	}

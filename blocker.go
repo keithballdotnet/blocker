@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Inflatablewoman/blocker/blocks"
-	"github.com/Inflatablewoman/blocker/crypto"
 	"github.com/Inflatablewoman/blocker/server"
 	"log"
 	"os"
@@ -18,6 +17,7 @@ func main() {
 	// Set up executable flags
 	version := flag.Bool("v", false, "prints current version without starting the application")
 	storageProvider := flag.String("s", "nfs", "Storage provider selection either 'nfs', 'cb', 'azure' or 's3'")
+	cryptoProvider := flag.String("c", "openpgp", "Crypto provider selection either 'openpgp' or 'aws'")
 
 	// This code allows someone to ask what version I am from the command line
 
@@ -36,11 +36,17 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Ensure string is to lower
+	blocks.CryptoProviderName = strings.ToLower(*cryptoProvider)
+
+	// Validate storage provider
+	if blocks.CryptoProviderName != "openpgp" && blocks.CryptoProviderName != "aws" {
+		fmt.Println("Unknown Provider: Crypto provider selection either 'openpgp' or 'aws'")
+		os.Exit(0)
+	}
+
 	// Now set up repos
 	blocks.SetUpRepositories()
-
-	// Get the PGP keys
-	crypto.GetPGPKeyRings()
 
 	log.SetOutput(os.Stdout)
 	log.SetPrefix("Blocker:")
