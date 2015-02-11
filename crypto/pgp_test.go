@@ -22,6 +22,8 @@ var publicPath = filepath.Join(os.TempDir(), "blocker", "public.pem")
 // Path to the private key
 var privatePath = filepath.Join(os.TempDir(), "blocker", "private.pem")
 
+var cryptoProvider CryptoProvider
+
 func SetupPGPTests() {
 	depositoryDir := filepath.Join(os.TempDir(), "blocker")
 
@@ -36,7 +38,7 @@ func SetupPGPTests() {
 	os.Setenv("BLOCKER_PGP_PRIVATEKEY", privatePath)
 
 	// Get the keys
-	GetPGPKeyRings()
+	cryptoProvider, err = NewOpenPGPCryptoProvider()
 }
 
 // Setup the REST testing suite
@@ -63,7 +65,7 @@ func (s *CryptoPGPSuite) TestPGPCrypto(c *C) {
 
 	fmt.Println("bytes to encrypt: " + string(bytesToEncrypt))
 
-	encryptedBytes, err := PGPEncrypt(bytesToEncrypt)
+	encryptedBytes, err := cryptoProvider.Encrypt(bytesToEncrypt)
 
 	if err != nil {
 		fmt.Println("Got error: " + err.Error())
@@ -74,7 +76,7 @@ func (s *CryptoPGPSuite) TestPGPCrypto(c *C) {
 
 	fmt.Println("encrypted bytes: " + string(encryptedBytes))
 
-	unencryptedBytes, err := PGPDecrypt(encryptedBytes)
+	unencryptedBytes, err := cryptoProvider.Decrypt(encryptedBytes)
 
 	if err != nil {
 		fmt.Println("Got error: " + err.Error())
