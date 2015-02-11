@@ -27,8 +27,8 @@ The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dr
 - Files are stored in blocks
 - Immutable blocks (Append Only Data Store)
 - Blocks are hashed
-- Blocks are encrypted with own unique Symmetric Key (Symmetric Keys are Encrypted with RSA Master Key)
-- Blocks are compressed using Snappy Compression
+- Blocks are encrypted
+- Blocks are compressed
 - Reduces data duplication
 - Files where blocks have not changed reference old blocks
 - A REST interface for manipulating blocks
