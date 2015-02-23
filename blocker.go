@@ -17,7 +17,7 @@ func main() {
 	// Set up executable flags
 	version := flag.Bool("v", false, "prints current version without starting the application")
 	storageProvider := flag.String("s", "nfs", "Storage provider selection either 'nfs', 'cb', 'azure' or 's3'")
-	cryptoProvider := flag.String("c", "openpgp", "Crypto provider selection either 'openpgp' or 'aws'")
+	cryptoProvider := flag.String("c", "openpgp", "Crypto provider selection either 'gokms', 'openpgp' or 'aws'")
 
 	// This code allows someone to ask what version I am from the command line
 
@@ -40,8 +40,8 @@ func main() {
 	blocks.CryptoProviderName = strings.ToLower(*cryptoProvider)
 
 	// Validate storage provider
-	if blocks.CryptoProviderName != "openpgp" && blocks.CryptoProviderName != "aws" {
-		fmt.Println("Unknown Provider: Crypto provider selection either 'openpgp' or 'aws'")
+	if blocks.CryptoProviderName != "openpgp" && blocks.CryptoProviderName != "aws" && blocks.CryptoProviderName != "gokms" {
+		fmt.Println("Unknown Provider: Crypto provider selection either 'gokms', 'openpgp' or 'aws'")
 		os.Exit(0)
 	}
 

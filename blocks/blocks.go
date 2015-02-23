@@ -112,6 +112,8 @@ func SetUpRepositories() {
 
 	// Load the storage provider
 	switch CryptoProviderName {
+	case "gokms":
+		CryptoProvider, err = crypto.NewGoKMSCryptoProvider()
 	case "aws":
 		CryptoProvider, err = crypto.NewAwsCryptoProvider()
 	case "openpgp":

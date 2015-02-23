@@ -352,6 +352,8 @@ func (s *ServerSuite) TestSimpleUploadAndDownload(c *C) {
 
 func (s *ServerSuite) TestLarge240MbUploadAndDownload(c *C) {
 
+	c.Skip("Skip large upload test")
+
 	// Set the key path  Make sure the default key is loaded.
 	flag.Set("sharedKey", "")
 
