@@ -278,6 +278,53 @@ func AesEncrypt(bytesToEncrypt []byte, key []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
+// AesGCMEncrypt Encrypt data using AES with the GCM chipher mode (Gives Confidentiality and Authenticity)
+func AesGCMEncrypt(plaintext []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
+
+	return append(nonce, ciphertext...), nil
+}
+
+// AesGCMDecrypt Decrypt data using AES with the GCM chipher mode (Gives Confidentiality and Authenticity)
+func AesGCMDecrypt(ciphertext []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, errors.New("Data to decrypt is too small")
+	}
+
+	plaintext, err := gcm.Open(nil, ciphertext[:nonceSize], ciphertext[nonceSize:], nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plaintext, nil
+}
+
 // GetHmac256 will generate a HMAC hash encoded to base64
 func GetHmac256(message string, secret string) string {
 	key := []byte(secret)

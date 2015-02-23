@@ -19,6 +19,41 @@ type CryptoSuite struct {
 
 var _ = Suite(&CryptoSuite{})
 
+func (s *CryptoSuite) TestAesGCMCrypto(c *C) {
+
+	encryptString := "I once had a girl, or should I say, she once had me."
+
+	bytesToEncrypt := []byte(encryptString)
+
+	fmt.Println("GCM bytes to encrypt: " + string(bytesToEncrypt))
+
+	aesKey := GenerateAesSecret()
+
+	encryptedBytes, err := AesGCMEncrypt(bytesToEncrypt, aesKey)
+
+	if err != nil {
+		fmt.Println("Got error: " + err.Error())
+	}
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	fmt.Println("GCM encrypted bytes: " + string(encryptedBytes))
+
+	unencryptedBytes, err := AesGCMDecrypt(encryptedBytes, aesKey)
+
+	if err != nil {
+		fmt.Println("Got error: " + err.Error())
+	}
+
+	// No error
+	c.Assert(err == nil, IsTrue)
+
+	fmt.Println("GCM Unencrypted bytes: " + string(unencryptedBytes))
+
+	c.Assert(bytes.Equal(bytesToEncrypt, unencryptedBytes), IsTrue)
+}
+
 func (s *CryptoSuite) TestAesCrypto(c *C) {
 
 	encryptString := "a very very very very secret pot"

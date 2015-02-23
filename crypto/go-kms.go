@@ -67,21 +67,6 @@ func (p GoKMSCryptoProvider) getNewestKeyID() string {
 
 		// Return the first key id..
 		return key.KeyID
-
-		/*describeKeyRequest := kms.DescribeKeyRequest{KeyID: aws.String(*(key.KeyID))}
-		describeKeyResponse, err := cli.DescribeKey(&describeKeyRequest)
-		if err != nil {
-			log.Printf("Unable to describe key: %v", err)
-			return ""
-		}
-
-		log.Printf("KeyMetadata.ARN: %v", *(describeKeyResponse.KeyMetadata.ARN))
-		log.Printf("KeyMetadata.AWSAccountID: %v", *(describeKeyResponse.KeyMetadata.AWSAccountID))
-		log.Printf("KeyMetadata.CreationDate: %v", *(describeKeyResponse.KeyMetadata.CreationDate))
-		log.Printf("KeyMetadata.Description: %v", *(describeKeyResponse.KeyMetadata.Description))
-		log.Printf("KeyMetadata.Enabled: %v", *(describeKeyResponse.KeyMetadata.Enabled))
-		log.Printf("KeyMetadata.KeyID: %v", *(describeKeyResponse.KeyMetadata.KeyID))
-		log.Printf("KeyMetadata.KeyUsage: %v", *(describeKeyResponse.KeyMetadata.KeyUsage))*/
 	}
 
 	createKeyRequest := kms.CreateKeyRequest{Description: "Blocker AES Encrypt/Decrypt Key"}
@@ -110,13 +95,11 @@ func (p GoKMSCryptoProvider) Encrypt(data []byte) ([]byte, error) {
 	}
 
 	// Encrypt data using AWS obtained key
-	encryptedData, err := AesEncrypt([]byte(data), generateKeyResponse.Plaintext)
+	encryptedData, err := AesGCMEncrypt([]byte(data), generateKeyResponse.Plaintext)
 	if err != nil {
 		log.Printf("Unable to encrypt: %v", err)
 		return nil, err
 	}
-
-	log.Printf("Length of Key: %v", len(generateKeyResponse.CiphertextBlob))
 
 	// Let's envelope the data
 	var buffer bytes.Buffer
@@ -164,7 +147,7 @@ func (p GoKMSCryptoProvider) Decrypt(data []byte) ([]byte, error) {
 	}
 
 	// Decrypt the datapackge with the unencrypted key
-	decryptedData, err := AesDecrypt(dataPackage, decryptResponse.Plaintext)
+	decryptedData, err := AesGCMDecrypt(dataPackage, decryptResponse.Plaintext)
 	if err != nil {
 		log.Printf("Unable to decrypt data package: %v", err)
 		return nil, err
