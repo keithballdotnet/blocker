@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/Inflatablewoman/go-kms/kms"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -33,7 +35,16 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 		panic("Enivronmental Variable: BLOCKER_GOKMS_AUTHKEY or BLOCKER_GOKMS_URL are empty!  You must set these values when using GO KMS key management!")
 	}
 
-	jsonClient := JSONClient{Client: http.DefaultClient, Endpoint: baseUrl, AuthKey: authKey}
+	client := http.DefaultClient
+
+	ignoreBadTls := os.Getenv("BLOCKER_GOKMS_IGNORE_BAD_TLS_CERT")
+	if strings.ToUpper(ignoreBadTls) == "TRUE" {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	jsonClient := JSONClient{Client: client, Endpoint: baseUrl, AuthKey: authKey}
 	gokms := GoKMSCryptoProvider{cli: jsonClient}
 
 	gokms.keyID = os.Getenv("BLOCKER_GOKMS_KEYID")
