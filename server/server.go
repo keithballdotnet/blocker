@@ -97,7 +97,7 @@ func SetupAuthenticationKey() {
 		return
 	}
 
-	log.Println("Using auth key file...")
+	log.Printf("Using auth key file: %v", keyPath)
 
 	// Get the key
 	SharedKey = string(bytes)

@@ -42,7 +42,10 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
+		log.Println("WARNING: Ignore bad TLS Certificates is set to TRUE!  Do not do this in production!")
 	}
+
+	log.Printf("GoKMSCryptoProvider using GO-KMS @ %v", baseUrl)
 
 	jsonClient := JSONClient{Client: client, Endpoint: baseUrl, AuthKey: authKey}
 	gokms := GoKMSCryptoProvider{cli: jsonClient}
@@ -55,8 +58,6 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 	if gokms.keyID == "" {
 		panic("Unable to find a key ID to use for encryption. You must set these values when using amazon KMS key management!")
 	}
-
-	log.Printf("GoKMSCryptoProvider using Key: %v", gokms.keyID)
 
 	return gokms, nil
 }
