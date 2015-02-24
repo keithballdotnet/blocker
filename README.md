@@ -33,6 +33,10 @@ The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dr
 - Files where blocks have not changed reference old blocks
 - A REST interface for manipulating blocks
 - Uses couchbase for BlockedFiles repository
+- Possible to specify crypto provider
+   + openpgp - Encrypt using pgp key pair
+   + aws - Use keys retrieved from AWS KMS
+   + gokms - Use keys retrieved from GO-KMS
 - Possible to specify a backend Storage provider
    + nfs - Local mount disk storage (GlusterFS could be used)
    + couchbase - Couchbase Raw Binary storage
@@ -101,7 +105,23 @@ Compression is done using google's [Snappy compression](https://code.google.com/
 
 ##Data Encryption
 
-Data encryption can be done using one of either the following providers.  You can select which mode by setting the cli flag *-c* to either *"openpgp"* or *"aws"*.  OpenPGP is the default crypto provider.
+Data encryption can be done using one of either the following providers.  You can select which mode by setting the cli flag *-c* to either *"go-kms"*, *"openpgp"* or *"aws"*.  OpenPGP is the default crypto provider.
+
+###GO Key Management Service
+
+GO-KMS can is a Key Management Service written in GO.  It is available on [github.com](https://github.com/Inflatablewoman/go-kms).  GO-KMS is AWK KMS compatible.
+
+To setup blocker to run with GO-KMS the following should be set.
+
+```
+export BLOCKER_GOKMS_AUTHKEY=YourGoKmsKey
+export BLOCKER_GOKMS_URL=https://go-kms.yourhost.com
+
+#optional: export BLOCKER_GOKMS_KEYID=YourKeyID
+#If left empty the first availble key will be selected
+```
+
+The crypto provider uses [AES](http://en.wikipedia.org/wiki/Advanced_Encryption_Standard) and a key size of 256bits using the [GCM cipher](http://en.wikipedia.org/wiki/Galois/Counter_Mode) to provide confidentiality as well as authentication.  
 
 ###AWS Key Management Service
 
