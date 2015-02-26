@@ -64,7 +64,7 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 }
 
 // KeyByCreated - Will sort the Keys by CreationDate
-type KeyByCreated []kms.KeyMetadata
+type KeyByCreated []KeyMetadata
 
 func (a KeyByCreated) Len() int      { return len(a) }
 func (a KeyByCreated) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
