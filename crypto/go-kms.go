@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/Inflatablewoman/go-kms/kms"
 	"io"
 	"io/ioutil"
 	"log"
@@ -50,12 +50,12 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 	jsonClient := JSONClient{Client: client, Endpoint: baseUrl, AuthKey: authKey}
 	gokms := GoKMSCryptoProvider{cli: jsonClient}
 
-	gokms.keyID = os.Getenv("BLOCKER_GOKMS_KEYID")
-	if gokms.keyID == "" {
-		gokms.keyID = gokms.getNewestKeyID()
+	keyID := os.Getenv("BLOCKER_GOKMS_KEYID")
+	if keyID == "" {
+		keyID = gokms.getNewestKeyID()
 	}
 
-	if gokms.keyID == "" {
+	if keyID == "" {
 		panic("Unable to find a key ID to use for encryption. You must set these values when using amazon KMS key management!")
 	}
 
@@ -64,9 +64,9 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 
 func (p GoKMSCryptoProvider) getNewestKeyID() string {
 	// List the key available...
-	keyRequest := kms.ListKeysRequest{}
+	keyRequest := ListKeysRequest{}
 
-	listKeyResponse := &kms.ListKeysResponse{}
+	listKeyResponse := &ListKeysResponse{}
 	err := p.cli.Do("POST", "/api/v1/go-kms/listkeys", &keyRequest, listKeyResponse)
 	if err != nil {
 		log.Printf("Unable to list keys: %v", err)
@@ -81,9 +81,9 @@ func (p GoKMSCryptoProvider) getNewestKeyID() string {
 		return key.KeyID
 	}
 
-	createKeyRequest := kms.CreateKeyRequest{Description: "Blocker AES Encrypt/Decrypt Key"}
+	createKeyRequest := CreateKeyRequest{Description: "Blocker AES Encrypt/Decrypt Key"}
 
-	createKeyResponse := &kms.CreateKeyResponse{}
+	createKeyResponse := &CreateKeyResponse{}
 	err = p.cli.Do("POST", "/api/v1/go-kms/createkey", &createKeyRequest, createKeyResponse)
 	if err != nil {
 		log.Printf("Unable to create key: %v", err)
@@ -97,9 +97,9 @@ func (p GoKMSCryptoProvider) getNewestKeyID() string {
 func (p GoKMSCryptoProvider) Encrypt(data []byte) ([]byte, error) {
 
 	// Request a new AES256 key from AWS KMS using the selected key
-	generateKeyRequest := kms.GenerateDataKeyRequest{KeyID: p.keyID}
+	generateKeyRequest := GenerateDataKeyRequest{KeyID: p.keyID}
 
-	generateKeyResponse := &kms.GenerateDataKeyResponse{}
+	generateKeyResponse := &GenerateDataKeyResponse{}
 	err := p.cli.Do("POST", "/api/v1/go-kms/generatedatakey", &generateKeyRequest, generateKeyResponse)
 	if err != nil {
 		log.Printf("Unable to get a data key: %v", err)
@@ -150,8 +150,8 @@ func (p GoKMSCryptoProvider) Decrypt(data []byte) ([]byte, error) {
 	}
 
 	// Ask GO KMS to decrypt the key
-	decryptRequest := kms.DecryptRequest{CiphertextBlob: keyPackage}
-	decryptResponse := &kms.DecryptResponse{}
+	decryptRequest := DecryptRequest{CiphertextBlob: keyPackage}
+	decryptResponse := &DecryptResponse{}
 	err = p.cli.Do("POST", "/api/v1/go-kms/decrypt", &decryptRequest, decryptResponse)
 	if err != nil {
 		log.Printf("Unable to decrypt key package: %v", err)
@@ -184,43 +184,34 @@ func (c *JSONClient) Do(method, uri string, req, resp interface{}) error {
 		return err
 	}
 
-	httpReq, err := http.NewRequest(method, c.Endpoint+uri, bytes.NewReader(b))
+	request, err := http.NewRequest(method, c.Endpoint+uri, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
-	httpReq.Header.Set("User-Agent", "Blocker")
-	httpReq.Header.Set("Content-Type", "application/json")
+	request.Header.Set("User-Agent", "Blocker")
+	request.Header.Set("Content-Type", "application/json")
 
-	httpReq = c.SetAuth(httpReq, method, uri)
+	request = c.SetAuth(request, method, uri)
 
-	httpResp, err := c.Client.Do(httpReq)
+	response, err := c.Client.Do(request)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		_ = httpResp.Body.Close()
+		response.Body.Close()
 	}()
 
-	if httpResp.StatusCode != http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(httpResp.Body)
+	if response.StatusCode != http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			return err
 		}
-		if len(bodyBytes) == 0 {
-			return APIError{
-				StatusCode: httpResp.StatusCode,
-				Message:    httpResp.Status,
-			}
-		}
-		var jsonErr jsonErrorResponse
-		if err := json.Unmarshal(bodyBytes, &jsonErr); err != nil {
-			return err
-		}
-		return jsonErr.Err(httpResp.StatusCode)
+
+		return errors.New(fmt.Sprintf("KMSError StatusCode: %v Error: %v", response.StatusCode, string(bodyBytes)))
 	}
 
 	if resp != nil {
-		return json.NewDecoder(httpResp.Body).Decode(resp)
+		return json.NewDecoder(response.Body).Decode(resp)
 	}
 	return nil
 }
@@ -242,30 +233,98 @@ func (c *JSONClient) SetAuth(request *http.Request, method string, resource stri
 	return request
 }
 
-type jsonErrorResponse struct {
-	Type    string `json:"__type"`
-	Message string `json:"message"`
+/* KMS JSON Structs */
+
+// KeyMetadata is the associated meta data of any key
+type KeyMetadata struct {
+	KeyID        string    `json:"KeyId"`
+	CreationDate time.Time `json:"CreationDate"`
+	Description  string    `json:"Description"`
+	Enabled      bool      `json:"Enabled"`
 }
 
-func (e jsonErrorResponse) Err(StatusCode int) error {
-	return APIError{
-		StatusCode: StatusCode,
-		Type:       e.Type,
-		Message:    e.Message,
-	}
+/* KMS Request / Response Structs */
+
+// ReEncryptRequest
+type ReEncryptRequest struct {
+	CiphertextBlob   []byte `json:"CiphertextBlob"`
+	DestinationKeyID string `json:"DestinationKeyId"`
 }
 
-// An APIError is an error returned by an AWS API.
-type APIError struct {
-	StatusCode int // HTTP status code e.g. 200
-	Type       string
-	Code       string
-	Message    string
-	RequestID  string
-	HostID     string
-	Specifics  map[string]string
+// ReEncryptResponse
+type ReEncryptResponse struct {
+	CiphertextBlob []byte `json:"CiphertextBlob"`
+	KeyID          string `json:"KeyID"`
+	SourceKeyID    string `json:"SourceKeyID"`
 }
 
-func (e APIError) Error() string {
-	return e.Message
+// CreateKeyRequest
+type CreateKeyRequest struct {
+	Description string `json:"Description,omitempty"`
+}
+
+// CreateKeyResponse
+type CreateKeyResponse struct {
+	KeyMetadata KeyMetadata `json:"KeyMetadata"`
+}
+
+// listKeysHandler
+type ListKeysRequest struct {
+}
+
+// ListKeysResponse
+type ListKeysResponse struct {
+	KeyMetadata []KeyMetadata `json:"KeyMetadata"`
+}
+
+// EnableKeyRequest
+type EnableKeyRequest struct {
+	KeyID string `json:"KeyID"`
+}
+
+// EnableKeyResponse
+type EnableKeyResponse struct {
+	KeyMetadata KeyMetadata `json:"KeyMetadata"`
+}
+
+// DisableKeyRequest
+type DisableKeyRequest struct {
+	KeyID string `json:"KeyID"`
+}
+
+// DisableKeyResponse
+type DisableKeyResponse struct {
+	KeyMetadata KeyMetadata `json:"KeyMetadata"`
+}
+
+// GenerateDataKeyRequest
+type GenerateDataKeyRequest struct {
+	KeyID string `json:"KeyID"`
+}
+
+// GenerateDataKeyResponse
+type GenerateDataKeyResponse struct {
+	Plaintext      []byte `json:"Plaintext"`
+	CiphertextBlob []byte `json:"CiphertextBlob"`
+}
+
+// EncryptRequest
+type EncryptRequest struct {
+	KeyID     string `json:"KeyID"`
+	Plaintext []byte `json:"Plaintext"`
+}
+
+// EncryptResponse
+type EncryptResponse struct {
+	CiphertextBlob []byte `json:"CiphertextBlob"`
+}
+
+// DecryptRequest
+type DecryptRequest struct {
+	CiphertextBlob []byte `json:"CiphertextBlob"`
+}
+
+// DecryptResponse
+type DecryptResponse struct {
+	Plaintext []byte `json:"Plaintext"`
 }
