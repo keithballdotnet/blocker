@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -62,6 +63,15 @@ func NewGoKMSCryptoProvider() (GoKMSCryptoProvider, error) {
 	return gokms, nil
 }
 
+// KeyByCreated - Will sort the Keys by CreationDate
+type KeyByCreated []kms.KeyMetadata
+
+func (a KeyByCreated) Len() int      { return len(a) }
+func (a KeyByCreated) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a KeyByCreated) Less(i, j int) bool {
+	return a[i].CreationDate.After(a[j].CreationDate)
+}
+
 func (p GoKMSCryptoProvider) getNewestKeyID() string {
 	// List the key available...
 	keyRequest := ListKeysRequest{}
@@ -73,7 +83,9 @@ func (p GoKMSCryptoProvider) getNewestKeyID() string {
 		return ""
 	}
 
-	// TODO: Sort this list and select newest key that can do encryption...
+	// Make sure we pick the newest key for encryption...
+	sort.Sort(KeyByCreated(listKeyResponse.KeyMetadata))
+
 	for _, key := range listKeyResponse.KeyMetadata {
 		log.Printf("Got key: %v %v", key.KeyID, key.Description)
 
