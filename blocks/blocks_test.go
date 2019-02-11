@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Inflatablewoman/blocker/crypto"
-	. "github.com/Inflatablewoman/blocker/gocheck2"
+	"github.com/keithballdotnet/blocker/crypto"
+	. "github.com/keithballdotnet/blocker/gocheck2"
 	. "gopkg.in/check.v1"
 )
 

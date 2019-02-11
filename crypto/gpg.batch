@@ -1,4 +1,4 @@
-%echo Use gpg2 --batch --gen-key --armor ./src/github.com/Inflatablewoman/blocker/crypto/gpg.batch 
+%echo Use gpg2 --batch --gen-key --armor ./src/github.com/keithballdotnet/blocker/crypto/gpg.batch 
 %echo Generating a configuration OpenPGP key
 Key-Type: default
 Subkey-Type: default

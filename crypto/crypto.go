@@ -98,7 +98,7 @@ func GenerateRsaKey() {
 		SerialNumber: new(big.Int).SetInt64(0),
 		Subject: pkix.Name{
 			CommonName:   "Blocker Encryption Master Key",
-			Organization: []string{"Inflatablewoman's CA"},
+			Organization: []string{"keithballdotnet's CA"},
 		},
 		NotBefore: now.Add(-5 * time.Minute).UTC(),
 		NotAfter:  now.AddDate(1, 0, 0).UTC(), // valid for 1 year.

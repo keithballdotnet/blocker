@@ -2,13 +2,13 @@ Blocker
 =======
 A block based filesystem microservice written in go
 
-[![GoDoc](https://godoc.org/github.com/Inflatablewoman/blocker?status.svg)](https://godoc.org/github.com/Inflatablewoman/blocker)
-[![Build Status](https://travis-ci.org/Inflatablewoman/blocker.svg)](https://travis-ci.org/Inflatablewoman/blocker)
-[![Coverage Status](https://coveralls.io/repos/Inflatablewoman/blocker/badge.svg)](https://coveralls.io/r/Inflatablewoman/blocker)
+[![GoDoc](https://godoc.org/github.com/keithballdotnet/blocker?status.svg)](https://godoc.org/github.com/keithballdotnet/blocker)
+[![Build Status](https://travis-ci.org/keithballdotnet/blocker.svg)](https://travis-ci.org/keithballdotnet/blocker)
+[![Coverage Status](https://coveralls.io/repos/keithballdotnet/blocker/badge.svg)](https://coveralls.io/r/keithballdotnet/blocker)
 
-##The case for Blocker
+## The case for Blocker
 
-###What is blocker?
+### What is blocker?
 
 Blocker is a block based file storage microservice. Files are stored in blocks referenced by their hash value. Blocks are encrypted. Blocks are compressed. Blocker is storage provider agnostic. Blocker can save storage space by removing duplication of data.
 
@@ -22,7 +22,7 @@ If a change is made to the video file, for example an extra 1mb of data is appen
 
 The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dropbox.com/tech/2014/07/streaming-file-synchronization/).
 
-##Features
+## Features
 
 - Files are stored in blocks
 - Immutable blocks (Append Only Data Store)
@@ -43,11 +43,11 @@ The basis of this is taken from a [2014 tech blog from Dropbox](https://blogs.dr
    + azure - Azure Simple Storage
    + s3 - Amazon s3 storage
 
-##Todo
+## Todo
 
 - Updating a block from the block list
 
-##Authorization
+## Authorization
 
 Authorization is done via a *Authorization* header sent in a request.  Anonymous requests are not allowed.  To authenticate a request, you must sign the request with the shared key when making the request and pass that signature as part of the request.  
 
@@ -99,17 +99,17 @@ hmac := crypto.GetHmac256(authRequestKey, SharedKey)
 request.Header.Add("Authorization", hmac)
 ```
 
-##Compression
+## Compression
 
 Compression is done using google's [Snappy compression](https://code.google.com/p/snappy/).
 
-##Data Encryption
+## Data Encryption
 
 Data encryption can be done using one of either the following providers.  You can select which mode by setting the cli flag *-c* to either *"go-kms"*, *"openpgp"* or *"aws"*.  OpenPGP is the default crypto provider.
 
-###GO Key Management Service
+### GO Key Management Service
 
-GO-KMS can is a Key Management Service written in GO.  It is available on [github.com](https://github.com/Inflatablewoman/go-kms).  GO-KMS is AWK KMS compatible.
+GO-KMS can is a Key Management Service written in GO.  It is available on [github.com](https://github.com/keithballdotnet/go-kms).  GO-KMS is AWK KMS compatible.
 
 To setup blocker to run with GO-KMS the following should be set.
 
@@ -123,7 +123,7 @@ export BLOCKER_GOKMS_URL=https://go-kms.yourhost.com
 
 The crypto provider uses [AES](http://en.wikipedia.org/wiki/Advanced_Encryption_Standard) and a key size of 256bits using the [GCM cipher](http://en.wikipedia.org/wiki/Galois/Counter_Mode) to provide confidentiality as well as authentication.  
 
-###AWS Key Management Service
+### AWS Key Management Service
 
 Communication with the Amazon Web Services (AWS) is done via the [official library]("http://www.github.com/awslabs/aws-sdk-go/aws").
 
@@ -157,7 +157,7 @@ Upon a request for decryption the data envelope will be inspected, the encrypted
 
 ![](images/aws_decrypt.png?raw=true)
 
-###OpenPGP
+### OpenPGP
 
 The OpenPGP crypto provider is done using using the [openpgp golang library](https://godoc.org/golang.org/x/crypto/openpgp).  Specifically a SHA256 hash and the AES256 Cipher is used for encryption.  
 
@@ -173,7 +173,7 @@ var pgpConfig = &packet.Config{
 Data encryption requires a key, to generate a key you can use the following command.  
 
 ```
-gpg2 --batch --gen-key --armor ./src/github.com/Inflatablewoman/blocker/crypto/gpg.batch
+gpg2 --batch --gen-key --armor ./src/github.com/keithballdotnet/blocker/crypto/gpg.batch
 ```
 
 Once you have the public and private key files, you should set the following OS variables to the path of where the keys can be found.
@@ -191,11 +191,11 @@ The basic concept of pgp is show in this image:
 
 _Image taken from wikipedia_
 
-##REST API
+## REST API
 
 The REST API interface can be used to perform operations against the Filesystem.  Default location is localhost:8010.
 
 [Apiary.io Documenation](http://docs.blockerapi.apiary.io)
 
-##Example code
-[Example test scenario](https://github.com/Inflatablewoman/blocker/blob/master/server/server_test.go)
+## Example code
+[Example test scenario](https://github.com/keithballdotnet/blocker/blob/master/server/server_test.go)

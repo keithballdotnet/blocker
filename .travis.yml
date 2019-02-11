@@ -4,15 +4,15 @@ go:
   - tip
 
 install:
-  - go get -v github.com/Inflatablewoman/blocker
+  - go get -v github.com/keithballdotnet/blocker
   - go get gopkg.in/check.v1
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
 
 script: 
-  - go build github.com/Inflatablewoman/blocker
-  - go test -v github.com/Inflatablewoman/blocker/crypto
-  - go test -v -covermode=count -coverprofile=coverage.out github.com/Inflatablewoman/blocker/blocks
+  - go build github.com/keithballdotnet/blocker
+  - go test -v github.com/keithballdotnet/blocker/crypto
+  - go test -v -covermode=count -coverprofile=coverage.out github.com/keithballdotnet/blocker/blocks
   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 
 notifications:

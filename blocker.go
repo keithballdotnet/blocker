@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Inflatablewoman/blocker/blocks"
-	"github.com/Inflatablewoman/blocker/server"
+	"github.com/keithballdotnet/blocker/blocks"
+	"github.com/keithballdotnet/blocker/server"
 	"log"
 	"os"
 	"strings"

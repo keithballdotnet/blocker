@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/go-uuid/uuid"
-	"code.google.com/p/snappy-go/snappy"
-	"github.com/Inflatablewoman/blocker/crypto"
-	"github.com/Inflatablewoman/blocker/hash2"
+	"github.com/golang/snappy"
+	"github.com/google/uuid"
+	"github.com/keithballdotnet/blocker/crypto"
+	"github.com/keithballdotnet/blocker/hash2"
 )
 
 // This is a form used to link the File to the Block without needing to load the full data from the database
@@ -195,10 +195,7 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 
 			// Compress the data
 			if UseCompression {
-				storeData, err = snappy.Encode(nil, storeData)
-				if err != nil {
-					return BlockedFile{}, err
-				}
+				storeData = snappy.Encode(nil, storeData)
 			}
 
 			// Encrypt the data
@@ -236,7 +233,7 @@ func BlockBuffer(source io.Reader) (BlockedFile, error) {
 		fileblocks = append(fileblocks, fileblock)
 	}
 
-	blockedFile := BlockedFile{uuid.New(), fileHash, fileLength, fileblocks}
+	blockedFile := BlockedFile{uuid.New().String(), fileHash, fileLength, fileblocks}
 
 	err := BlockedFileStore.SaveBlockedFile(blockedFile)
 
@@ -298,7 +295,7 @@ func CopyBlockedFile(blockFileID string) (BlockedFile, error) {
 
 	// Create a copy of the BlockedFile and give it a new ID
 	blockedFileCopy := *(blockedFile)
-	blockedFileCopy.ID = uuid.New()
+	blockedFileCopy.ID = uuid.New().String()
 	BlockedFileStore.SaveBlockedFile(blockedFileCopy)
 
 	// Update the FileBlockInfo for all the FileBlocks to maintain the use count...

@@ -9,9 +9,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Inflatablewoman/azure"
-	"github.com/couchbase/gomemcached/client"
+	memcached "github.com/couchbase/gomemcached/client"
 	"github.com/couchbaselabs/go-couchbase"
+	"github.com/keithballdotnet/azure"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/s3"
 )

@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Inflatablewoman/blocker/blocks"
-	"github.com/Inflatablewoman/blocker/crypto"
+	"github.com/keithballdotnet/blocker/blocks"
+	"github.com/keithballdotnet/blocker/crypto"
 	"io"
 	"io/ioutil"
 	"log"

@@ -2,7 +2,7 @@ package hash2
 
 import (
 	"encoding/hex"
-	. "github.com/Inflatablewoman/blocker/gocheck2"
+	. "github.com/keithballdotnet/blocker/gocheck2"
 	. "gopkg.in/check.v1"
 	"testing"
 )

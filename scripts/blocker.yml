@@ -54,7 +54,7 @@ coreos:
         TimeoutStartSec=10m
         ExecStartPre=-/usr/bin/docker kill blocker1
         ExecStartPre=-/usr/bin/docker rm blocker1
-        ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -v /tmp:/tmp inflatablewoman/blocker
+        ExecStart=/usr/bin/docker run --publish 6045:8002 --name blocker1 -v /tmp:/tmp keithballdotnet/blocker
         RemainAfterExit=yes
   update: 
     group: alpha
